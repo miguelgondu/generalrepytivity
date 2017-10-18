@@ -1,32 +1,38 @@
 import sympy
 
-class(object) VectorField:
-    def __init__(self, _matrix, _coordinates):
-        self.matrix = _matrix # Assumed to be vertical nx1
-        self.coordinates = _coordinates
-
-    def change_coordinates(self, new_coordinates, relation_between_coordinates):
-        '''
-        This function changes the vector fields from one base
-        to the other.
-
-        To-Do:
-            -Implement it
-        '''
-        return
-
-class(object) Metric:
-    def __init__(self, _matrix, _coordinates):
-        self.matrix = _matrix
-        self.coordinates = _coordinates
+def is_multiindex(multiindex, n, dimension):
+    if multiindex == None:
+        return True
+    if len(multiindex) > dimension:
+        return False
+    for value in multiindex:
+        if value < 0 or value >= n:
+            return False
     
-    def distance(vector1, vector2):
-        '''
-        This function computes the distance between two vectors according
-        to the metric.
+    return True
 
-        To-Do:
-            -Test this beauty.
-        '''
-        return (vector1.matrix.T * self.matrix) * vector2.matrix
+class Tensor:
+    '''
+    This class represents a tensor object in a given basis.
 
+    To construct a (p,q)-Tensor, one must pass two arguments:
+    1. dimensionality: a pair of values p and q.
+    2. the non-zero values, which is a dict whose value are pairs of the form (a, b)
+    where a and b are multi-indices such that $\Gamma^b_a = value$, the values that
+    don't appear in this list are assumed to be 0.
+    '''
+    def __init__(self, basis, dimensionality, dict_of_values):
+        self.basis = basis
+        self.covariant_dim = dimensionality[0]
+        self.contravariant_dim = dimensionality[1]
+        self.dict_of_values = dict_of_values
+    
+    def __getitem__(self, pair):
+        a, b = pair
+        if is_multiindex(a, len(self.basis), self.covariant_dim) and is_multiindex(b, len(self.basis), self.contravariant_dim):
+            if (a, b) in self.dict_of_values:
+                return self.dict_of_values[(a, b)]
+            else:
+                return 0
+        else:
+            raise KeyError
