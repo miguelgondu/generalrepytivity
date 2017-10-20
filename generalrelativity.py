@@ -28,6 +28,7 @@ class Tensor:
         self.basis = basis
         self.covariant_dim = _type[0]
         self.contravariant_dim = _type[1]
+        self.type = _type
         self.dict_of_values = dict_of_values
     
     def __getitem__(self, pair):
@@ -61,3 +62,21 @@ class Tensor:
             string += ' + '
         string = string[:-3]
         return string
+
+    def __add__(self, other):
+        if not isinstance(other, Tensor):
+            raise ValueError('Cannot add a tensor with a {}'.format(type(other)))
+        
+        if other.basis != self.basis or other.type != self.type:
+            raise ValueError('Tensors should be of the same type and have the same basis.')
+
+        result_dict = self.dict_of_values.copy()
+        for key in other.dict_of_values:
+            if key in result_dict:
+                result_dict[key] = result_dict[key] + other.dict_of_values[key]
+            if key not in result_dict:
+                result_dict[key] = other.dict_of_values[key]
+        
+        result_basis = self.basis
+        result_type = self.type
+        return Tensor(result_basis, result_type, result_dict)
