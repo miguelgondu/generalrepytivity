@@ -23,6 +23,9 @@ class Tensor:
     2. the non-zero values, which is a dict whose value are pairs of the form (a, b)
     where a and b are multi-indices such that $\Gamma^a_b = value$, the values that
     don't appear in this list are assumed to be 0.
+
+    To-Do:
+    1. add an incosistency check for values and (p,q).
     '''
     def __init__(self, basis, _type, dict_of_values):
         self.basis = basis
@@ -33,14 +36,29 @@ class Tensor:
     
     def __getitem__(self, pair):
         a, b = pair
-        if (is_multiindex(a, len(self.basis), self.contravariant_dim)
-             and is_multiindex(b, len(self.basis), self.covariant_dim)):
-            if (a, b) in self.dict_of_values:
-                return self.dict_of_values[(a, b)]
-            else:
-                return 0
-        else:
-            raise KeyError('There\'s something wrong with the pair of multiindices {} and {}'.format(a, b))
+        if isinstance(a, int):
+            if isinstance(b, int):
+                if ((a, ), (b, )) in self.dict_of_values:
+                    return self.dict_of_values[((a, ), (b, ))]
+                else:
+                    return 0
+            if is_multiindex(b, len(self.basis), self.covariant_dim):
+                if ((a, ), b) in self.dict_of_values:
+                    return self.dict_of_values[((a, ), b)]
+                else:
+                    return 0
+        if is_multiindex(a, len(self.basis), self.contravariant_dim):
+            if isinstance(b, int):
+                if (a, (b, )) in self.dict_of_values:
+                    return self.dict_of_values[(a, (b, ))]
+                else:
+                    return 0
+            if is_multiindex(b, len(self.basis), self.covariant_dim):
+                if (a, b) in self.dict_of_values:
+                    return self.dict_of_values[(a, b)]
+                else:
+                    return 0
+        raise KeyError('There\'s something wrong with the pair of multiindices {} and {}'.format(a, b))
 
     def __repr__(self):
         string = ''
@@ -80,3 +98,23 @@ class Tensor:
         result_basis = self.basis
         result_type = self.type
         return Tensor(result_basis, result_type, result_dict)
+
+    def subs(list_of_substitutions):
+        for value in self.dict_of_values.items:
+            value.subs(list_of_substitutions)
+
+def tensor_from_matrix(matrix, basis):
+    '''
+    This function takes a square matrix and a basis and retruns a (0,2)-tensor in that basis.
+    '''
+    dict_of_values = {}
+    for i in range(len(matrix.tolist())):
+        for j in range(len(matrix.tolist())):
+            dict_of_values[(i,j), None] = matrix[i, j]
+    return Tensor(basis, (0, 2), dict_of_values)
+
+class Metric:
+    def __init__(self, _matrix, basis):
+        self.matrix = _matrix
+        self.basis = basis
+        self.as_tensor = tensor_from_matrix(self.matrix, self.basis)
