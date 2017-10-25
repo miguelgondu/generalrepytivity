@@ -26,6 +26,44 @@ def test_return_value_tensor2():
     tensor = gr.Tensor(basis, dimensionality, dict_of_values)
     assert tensor[(1,1), 0] == 5
 
+def test_error_with_wrong_key():
+    dict_of_values = {
+        ((1,1), (0, )): 5,
+        ((0,1), (0, )): -3,
+        ((1,0), (2, )): 8,
+    }
+    basis = [t, x, y, z]
+    dimensionality = (1, 2)
+    tensor = gr.Tensor(basis, dimensionality, dict_of_values)
+    try:
+        assert tensor[(1,1), (1,1)] == 5
+    except KeyError:
+        assert True
+
+def test_wrong_dict_in_creation():
+    _type = (2, 2)
+    basis = [t, x, y, z]
+    dict_of_values = {
+        ((0, 0), (1, 1)): 3,
+        ((0, ), (1, 2)): -1
+    }
+    try:
+        tensor = gr.Tensor(basis, _type, dict_of_values)
+    except ValueError:
+        assert True
+
+def test_wrong_dict_in_creation2():
+    _type = (2, 2)
+    basis = [t, x, y, z]
+    dict_of_values = {
+        ((0, 0), (1, 1)): 3,
+        ((0, 0), (1, 4)): -1
+    }
+    try:
+        tensor = gr.Tensor(basis, _type, dict_of_values)
+    except ValueError:
+        assert True
+
 def test_tensor_from_matrix1():
     A = sympy.diag(-1, 1, 1, 1)
     basis = [t, x, y ,z]

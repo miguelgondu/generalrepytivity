@@ -23,25 +23,34 @@ class Tensor:
     2. the non-zero values, which is a dict whose value are pairs of the form (a, b)
     where a and b are multi-indices such that $\Gamma^a_b = value$, the values that
     don't appear in this list are assumed to be 0.
-
-    To-Do:
-    1. add an incosistency check for values and (p,q).
     '''
     def __init__(self, basis, _type, dict_of_values):
         self.basis = basis
         self.covariant_dim = _type[0]
         self.contravariant_dim = _type[1]
         self.type = _type
+
+        for key in dict_of_values:
+            a, b = key
+            if not is_multiindex(a, len(self.basis), self.contravariant_dim):
+                raise ValueError('The multiindex {} is inconsistent with dimensions'.format(a))
+            if not is_multiindex(b, len(self.basis), self.covariant_dim):
+                raise ValueError('The multiindex {} is inconsistent with dimensions'.format(b))
+
         self.dict_of_values = dict_of_values
     
     def __getitem__(self, pair):
         a, b = pair
         if isinstance(a, int):
             if isinstance(b, int):
-                if ((a, ), (b, )) in self.dict_of_values:
-                    return self.dict_of_values[((a, ), (b, ))]
+                if (is_multiindex((a, ), len(self.basis), self.contravariant_dim) and
+                    is_multiindex((b, ), len(self.basis), self.covariant_dim)):
+                    if ((a, ), (b, )) in self.dict_of_values:
+                        return self.dict_of_values[((a, ), (b, ))]
+                    else:
+                        return 0
                 else:
-                    return 0
+                    raise KeyError('There\'s a problem with the multiindices ({}, ) and ({}, )'.format(a, b))
             if is_multiindex(b, len(self.basis), self.covariant_dim):
                 if ((a, ), b) in self.dict_of_values:
                     return self.dict_of_values[((a, ), b)]
