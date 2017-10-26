@@ -5,6 +5,8 @@ def get_all_multiindices(p, n):
     '''
     This function returns a list of all the tuples of the form (a_1, ..., a_p)
     with a_i between 1 and n-1. These tuples serve as multiindices for tensors.
+
+    To-Do: I could just return the itertools.product iterable object, no?
     '''
     if p == 0:
         return [None]
@@ -47,7 +49,7 @@ class Tensor:
     don't appear in this dict are assumed to be 0.
 
     To-Do:
-        - Fix the standard and start writing the .tex.
+        - Fix the standard and start writing the .tex. Think of the metric.
     '''
     def __init__(self, basis, _type, dict_of_values):
         self.basis = basis
@@ -170,6 +172,10 @@ def tensor_from_matrix(matrix, basis):
 
 class Metric:
     def __init__(self, _matrix, basis):
+        if _matrix != _matrix.T:
+            raise ValueError('Matrix should be symmetric.')
+        if _matrix.det() == 0:
+            raise ValueError('Matrix should be non-singular.')
         self.matrix = _matrix
         self.basis = basis
         self.as_tensor = tensor_from_matrix(self.matrix, self.basis)
@@ -193,8 +199,6 @@ def contract_indices(tensor, i, j):
 
     covariant_indices = get_all_multiindices(covariant_dim-1, dim)
     contravariant_indices = get_all_multiindices(contravariant_dim-1, dim)
-    print(covariant_indices)
-    print(contravariant_indices)
     new_tensor_dict = {}
     for a in contravariant_indices:
         for b in covariant_indices:
@@ -207,5 +211,31 @@ def contract_indices(tensor, i, j):
 
     return Tensor(tensor.basis, (contravariant_dim - 1, covariant_dim - 1), new_tensor_dict)
 
-def lower_index(tensor, metric):
-    pass
+def lower_index(tensor, metric, i):
+    if isinstance(metric, Metric):
+        if metric.basis != tensor.basis:
+            raise ValueError('Tensor and Metric should be on the same basis.')
+    else:
+        metric = Metric(metric, tensor.basis)
+    
+    if i < 0 or i >= tensor.contravariant_dim:
+        raise ValueError('The index to be lowered ({}) must be between 0 and {}'.format(i,
+                                                                        tensor.contravariant_dim))
+    
+    basis = tensor.basis
+    dim = len(basis)
+    new_covariant_dim = tensor.covariant_dim + 1
+    new_contravariant_dim = tensor.contravariant_dim - 1
+    new_type = (new_contravariant_dim, new_covariant_dim)
+    covariant_indices = get_all_multiindices(new_covariant_dim)
+    contravariant_indices = get_all_multiindices(new_contravariant_dim)
+
+    new_tensor_dict = {}
+    for a in covariant_indices:
+        for b in contravariant_indices:
+            a_extended = a[:i] + (b[0], ) + a[i:]
+            b_reduced = b[1:]
+            value = sum([metric[None, (b[0], r)]*tensor[a_extended, b_reduced] for r in range(dim)])
+            new_tensor_dict[a, b] = value
+    
+    return Tensor(basis, new_type, new_tensor_dict)
