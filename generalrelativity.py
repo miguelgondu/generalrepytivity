@@ -1,4 +1,13 @@
 import sympy
+import itertools
+
+def get_all_multiindices(p, n):
+    if p == 0:
+        return [None]
+    if p == 1:
+        return [(k, ) for k in range(n)]
+    if p > 1:
+        return list(itertools.product(range(n), repeat=p))
 
 def is_multiindex(multiindex, n, dimension):
     if multiindex == None:
@@ -13,6 +22,7 @@ def is_multiindex(multiindex, n, dimension):
             return False
     
     return True
+
 
 class Tensor:
     '''
@@ -108,9 +118,22 @@ class Tensor:
         result_type = self.type
         return Tensor(result_basis, result_type, result_dict)
 
-    def subs(list_of_substitutions):
+    def subs(self, list_of_substitutions):
         for value in self.dict_of_values.items:
             value.subs(list_of_substitutions)
+    
+    def get_all_values(self):
+        new_dict = {}
+        dim = len(self.basis)
+        covariant_multiindices = get_all_multiindices(self.covariant_dim, dim)
+        contravariant_multiindices = get_all_multiindices(self.contravariant_dim, dim)
+        for a in contravariant_multiindices:
+            for b in covariant_multiindices:
+                if (a,b) in self.dict_of_values:
+                    new_dict[a, b] = self.dict_of_values[a, b]
+                else:
+                    new_dict[a, b] = 0
+        return new_dict
 
 def tensor_from_matrix(matrix, basis):
     '''
@@ -127,3 +150,36 @@ class Metric:
         self.matrix = _matrix
         self.basis = basis
         self.as_tensor = tensor_from_matrix(self.matrix, self.basis)
+
+def contract_indices(tensor, i, j):
+    '''
+    Returns the resulting tensor of formally contracting the indices i and j 
+    of the given tensor.
+    '''
+    dim = len(tensor.basis)
+    covariant_dim = tensor.covariant_dim
+    contravariant_dim = tensor.contravariant_dim
+    if covariant_dim < 1 or contravariant_dim < 1:
+        raise ValueError('One of the dimensions in the type {} is less than one.'.format(tensor.type))
+    if i < 1 or i >= contravariant_dim:
+        raise ValueError('{} is either negative or bigger than the contravariant dimension minus one {}'.format(i,
+                                                                                    contravariant_dim-1))
+    if j < 1 or j >= covariant_dim:
+        raise ValueError('{} is either negative or bigger than the covariant dimension minus one {}'.format(j,
+                                                                                    covariant_dim-1))
+
+    
+    covariant_indices = get_all_multiindices(j-1, dim)
+    contravariant_indices = get_all_multiindices(i-1, dim)
+
+    new_tensor_dict = {}
+    for a in contravariant_indices:
+        for b in covariant_indices:
+            sumand = 0
+            for r in range(dim):
+                a_extended = a[:i] + (r, ) + a[i:]
+                b_extended = b[:i] + (r, ) + b[i:]
+                sumand += tensor[a_extended, b_extended]
+            new_tensor_dict[a, b] = sumand
+    
+    return Tensor(tensor.basis, (contravariant_dim - 1, covariant_dim - 1), new_tensor_dict)
