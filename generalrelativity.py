@@ -239,3 +239,31 @@ def lower_index(tensor, metric, i):
             new_tensor_dict[a, b] = value
     
     return Tensor(basis, new_type, new_tensor_dict)
+
+def raise_index(tensor, metric, j):
+    if isinstance(metric, Metric):
+        if metric.basis != tensor.basis:
+            raise ValueError('Tensor and Metric should be on the same basis.')
+    else:
+        metric = Metric(metric, tensor.basis)
+    
+    if j < 0 or j >= tensor.covariant_dim:
+        raise ValueError('The index to be raised ({}) must be between 0 and {}'.format(j,
+                                                                        tensor.convariant_dim))
+    
+    basis = tensor.basis
+    dim = len(basis)
+    new_covariant_dim = tensor.covariant_dim - 1
+    new_contravariant_dim = tensor.contravariant_dim + 1
+    new_type = (new_contravariant_dim, new_covariant_dim)
+    covariant_indices = get_all_multiindices(new_covariant_dim)
+    contravariant_indices = get_all_multiindices(new_contravariant_dim)
+    inverse_metric_matrix = metric.matrix.inv()
+
+    new_tensor_dict = {}
+    for a in covariant_indices:
+        for b in contravariant_indices:
+            a_reduced = a[:-1]
+            b_expanded = b[:j] + (a[-1], ) + b[j:]
+            value = sum([inverse_metric_matrix[b[0], r]*tensor[a_reduced, b_expanded] for r in range(dim)])
+            new_tensor_dict[a, b] = value
