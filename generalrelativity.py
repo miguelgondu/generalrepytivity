@@ -43,8 +43,8 @@ class Tensor:
     This class represents a tensor object in a given basis.
 
     To construct a (p,q)-Tensor, one must pass two arguments:
-    1. _type: a pair of values p (the contravariant dimension) and q (the covariant dimension).
-    2. the non-zero values, which is a dict whose value are pairs of the form (a, b)
+    1. _type: a pair of values p (the covariant dimension) and q (the contravariant dimension).
+    2. the non-zero values, which is a dict whose keys are pairs of the form (a, b)
     where a and b are multi-indices such that $\Gamma^a_b = value$, the values that
     don't appear in this dict are assumed to be 0.
 
@@ -59,10 +59,10 @@ class Tensor:
 
         for key in dict_of_values:
             a, b = key
-            if not is_multiindex(a, len(self.basis), self.contravariant_dim):
-                raise ValueError('The multiindex {} is inconsistent with dimension {}'.format(a, self.contravariant_dim))
-            if not is_multiindex(b, len(self.basis), self.covariant_dim):
-                raise ValueError('The multiindex {} is inconsistent with dimensions {}'.format(b, self.covariant_dim))
+            if not is_multiindex(a, len(self.basis), self.covariant_dim):
+                raise ValueError('The multiindex {} is inconsistent with dimension {}'.format(a, self.covariant_dim))
+            if not is_multiindex(b, len(self.basis), self.contravariant_dim):
+                raise ValueError('The multiindex {} is inconsistent with dimensions {}'.format(b, self.contravariant_dim))
 
         self.dict_of_values = dict_of_values
     
@@ -78,26 +78,26 @@ class Tensor:
         a, b = pair
         if isinstance(a, int):
             if isinstance(b, int):
-                if (is_multiindex((a, ), len(self.basis), self.contravariant_dim) and
-                    is_multiindex((b, ), len(self.basis), self.covariant_dim)):
+                if (is_multiindex((a, ), len(self.basis), self.covariant_dim) and
+                    is_multiindex((b, ), len(self.basis), self.contravariant_dim)):
                     if ((a, ), (b, )) in self.dict_of_values:
                         return self.dict_of_values[((a, ), (b, ))]
                     else:
                         return 0
                 else:
                     raise KeyError('There\'s a problem with the multiindices ({}, ) and ({}, )'.format(a, b))
-            if is_multiindex(b, len(self.basis), self.covariant_dim):
+            if is_multiindex(b, len(self.basis), self.contravariant_dim):
                 if ((a, ), b) in self.dict_of_values:
                     return self.dict_of_values[((a, ), b)]
                 else:
                     return 0
-        if is_multiindex(a, len(self.basis), self.contravariant_dim):
+        if is_multiindex(a, len(self.basis), self.covariant_dim):
             if isinstance(b, int):
                 if (a, (b, )) in self.dict_of_values:
                     return self.dict_of_values[(a, (b, ))]
                 else:
                     return 0
-            if is_multiindex(b, len(self.basis), self.covariant_dim):
+            if is_multiindex(b, len(self.basis), self.contravariant_dim):
                 if (a, b) in self.dict_of_values:
                     return self.dict_of_values[(a, b)]
                 else:
@@ -112,14 +112,14 @@ class Tensor:
             if a != None:
                 substring_of_a = ''
                 for ind in a:
-                    substring_of_a += '{}* \\otimes '.format(self.basis[ind])
+                    substring_of_a += '{} \\otimes '.format(self.basis[ind])
                 substring_of_a = substring_of_a[:-len(' \\otimes ')]
                 string += substring_of_a
             if b != None:
                 if a != None:
                     string += ' \\otimes '
                 for ind in b:
-                    string += '{} \\otimes '.format(self.basis[ind])
+                    string += '{}* \\otimes '.format(self.basis[ind])
                 string = string[:-len(' \\otimes ')]
             string += ' + '
         string = string[:-3]
@@ -152,8 +152,8 @@ class Tensor:
         dim = len(self.basis)
         covariant_multiindices = get_all_multiindices(self.covariant_dim, dim)
         contravariant_multiindices = get_all_multiindices(self.contravariant_dim, dim)
-        for a in contravariant_multiindices:
-            for b in covariant_multiindices:
+        for a in covariant_multiindices:
+            for b in contravariant_multiindices:
                 if (a,b) in self.dict_of_values:
                     new_dict[a, b] = self.dict_of_values[a, b]
                 else:
@@ -167,7 +167,7 @@ def tensor_from_matrix(matrix, basis):
     dict_of_values = {}
     for i in range(len(matrix.tolist())):
         for j in range(len(matrix.tolist())):
-            dict_of_values[(i,j), None] = matrix[i, j]
+            dict_of_values[None, (i,j)] = matrix[i, j]
     return Tensor(basis, (0, 2), dict_of_values)
 
 class Metric:
@@ -190,18 +190,18 @@ def contract_indices(tensor, i, j):
     contravariant_dim = tensor.contravariant_dim
     if covariant_dim < 1 or contravariant_dim < 1:
         raise ValueError('One of the dimensions in the type {} is less than one.'.format(tensor.type))
-    if i < 0 or i >= contravariant_dim:
+    if i < 0 or i >= covariant_dim:
         raise ValueError('{} is either negative or bigger than the contravariant dimension minus one {}'.format(i,
-                                                                                    contravariant_dim-1))
-    if j < 0 or j >= covariant_dim:
-        raise ValueError('{} is either negative or bigger than the covariant dimension minus one {}'.format(j,
                                                                                     covariant_dim-1))
+    if j < 0 or j >= contravariant_dim:
+        raise ValueError('{} is either negative or bigger than the covariant dimension minus one {}'.format(j,
+                                                                                    contravariant_dim-1))
 
     covariant_indices = get_all_multiindices(covariant_dim-1, dim)
     contravariant_indices = get_all_multiindices(contravariant_dim-1, dim)
     new_tensor_dict = {}
-    for a in contravariant_indices:
-        for b in covariant_indices:
+    for a in covariant_indices:
+        for b in contravariant_indices:
             sumand = 0
             for r in range(dim):
                 a_extended = a[:i] + (r, ) + a[i:]
@@ -209,7 +209,7 @@ def contract_indices(tensor, i, j):
                 sumand += tensor[a_extended, b_extended]
             new_tensor_dict[a, b] = sumand
 
-    return Tensor(tensor.basis, (contravariant_dim - 1, covariant_dim - 1), new_tensor_dict)
+    return Tensor(tensor.basis, (covariant_dim - 1, contravariant_dim - 1), new_tensor_dict)
 
 def lower_index(tensor, metric, i):
     if isinstance(metric, Metric):
@@ -218,9 +218,9 @@ def lower_index(tensor, metric, i):
     else:
         metric = Metric(metric, tensor.basis)
 
-    if i < 0 or i >= tensor.contravariant_dim:
+    if i < 0 or i >= tensor.covariant_dim:
         raise ValueError('The index to be lowered ({}) must be between 0 and {}'.format(i,
-                                                                        tensor.contravariant_dim))
+                                                                        tensor.covariant_dim))
 
     basis = tensor.basis
     dim = len(basis)
@@ -278,8 +278,8 @@ def get_connection_from_metric(metric):
     covariant_indices = get_all_multiindices(1, dim)
     contravariant_indices = get_all_multiindices(2, dim)
     dict_of_values = {}
-    for a in contravariant_indices:
-        for b in covariant_indices:
+    for a in covariant_indices:
+        for b in contravariant_indices:
             i, j = b
             c = a[0]
             sumand = 0
