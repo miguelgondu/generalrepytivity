@@ -270,6 +270,46 @@ def raise_index(tensor, metric, j):
 
     return Tensor(basis, new_type, new_tensor_dict)
 
+class LeviCivitaConnection:
+    def __init__(self, basis, metric):
+        if basis != metric.basis:
+            raise ValueError('Basis {} should coincide with the metric basis {}'.format(basis, metric.basis))
+        
+        self.basis = basis
+        self.type = (1,2)
+        dim = len(basis)
+        inverse_metric_matrix = metric.matrix.inv()
+        covariant_indices = get_all_multiindices(1, dim)
+        contravariant_indices = get_all_multiindices(2, dim)
+        dict_of_values = {}
+        for a in covariant_indices:
+            for b in contravariant_indices:
+                i, j = b
+                c = a[0]
+                sumand = 0
+                for r in range(dim):
+                    L = (metric.matrix[j, r].diff(basis[i])
+                        + metric.matrix[i, r].diff(basis[j])
+                        - metric.matrix[i, j].diff(basis[r]))
+                    sumand += inverse_metric_matrix[r, c] * L
+                dict_of_values[a, b] = (1/2) * sumand
+        self.christoffel_symbols = dict_of_values
+    
+    def __getitem__(self, pair):
+        a, b = pair
+        if isinstance(a, int):
+            if is_multiindex(b, len(self.basis), 2):
+                return self.christoffel_symbols[((a, ), b)]
+            else:
+                raise KeyError('The second entry {} should be a pair'.format(b))
+        elif is_multiindex(a, len(self.basis), 1):
+            if is_multiindex(b, len(self.basis), 2):
+                return self.dict_of_values[(a, b)]
+            else:
+                raise KeyError('The second entry {} should be a pair'.format(b))
+        else:
+            raise KeyError('The first entry {} should either be an integer or a multiindex of length 1'.format(a))
+
 def get_connection_from_metric(metric):
     basis = metric.basis
     dim = len(basis)
@@ -289,7 +329,7 @@ def get_connection_from_metric(metric):
                      - metric.matrix[i, j].diff(basis[r]))
                 sumand += inverse_metric_matrix[r, c] * L
             dict_of_values[a, b] = (1/2) * sumand
-    return Tensor(basis, _type, dict_of_values)
+    return LeviCivitaConnection(basis, metric)
 
 class Universe:
     def __init__(self, _metric):
