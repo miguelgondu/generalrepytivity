@@ -34,7 +34,7 @@ def is_multiindex(multiindex, n, c_dimension):
     for value in multiindex:
         if value < 0 or value >= n:
             return False
-    
+
     return True
 
 
@@ -47,9 +47,6 @@ class Tensor:
     2. the non-zero values, which is a dict whose keys are pairs of the form (a, b)
     where a and b are multi-indices such that $\Gamma^a_b = value$, the values that
     don't appear in this dict are assumed to be 0.
-
-    To-Do:
-        - Fix the standard and start writing the .tex. Think of the metric.
     '''
     def __init__(self, basis, _type, dict_of_values):
         self.basis = basis
@@ -65,7 +62,7 @@ class Tensor:
                 raise ValueError('The multiindex {} is inconsistent with dimensions {}'.format(b, self.contravariant_dim))
 
         self.dict_of_values = dict_of_values
-    
+
     def __eq__(self, other):
         if self.basis == other.basis:
             if self.type == other.type:
@@ -73,7 +70,6 @@ class Tensor:
                     return True
         return False
 
-    
     def __getitem__(self, pair):
         a, b = pair
         if isinstance(a, int):
@@ -179,6 +175,9 @@ class Metric:
         self.matrix = _matrix
         self.basis = basis
         self.as_tensor = tensor_from_matrix(self.matrix, self.basis)
+    
+    def __getitem__(self, key):
+        return self.as_tensor[key]
 
 def contract_indices(tensor, i, j):
     '''
@@ -204,8 +203,14 @@ def contract_indices(tensor, i, j):
         for b in contravariant_indices:
             sumand = 0
             for r in range(dim):
-                a_extended = a[:i] + (r, ) + a[i:]
-                b_extended = b[:j] + (r, ) + b[j:]
+                if a != None:
+                    a_extended = a[:i] + (r, ) + a[i:]
+                if a == None:
+                    a_extended = (r, )
+                if b != None:
+                    b_extended = b[:j] + (r, ) + b[j:]
+                if b == None:
+                    b_extended = (r, )
                 sumand += tensor[a_extended, b_extended]
             new_tensor_dict[a, b] = sumand
 
@@ -217,6 +222,9 @@ def lower_index(tensor, metric, i):
             raise ValueError('Tensor and Metric should be on the same basis.')
     else:
         metric = Metric(metric, tensor.basis)
+    
+    if tensor.covariant_dim == 0:
+        raise ValueError('There\'s no index to be lowered.')
 
     if i < 0 or i >= tensor.covariant_dim:
         raise ValueError('The index to be lowered ({}) must be between 0 and {}'.format(i,
@@ -224,18 +232,23 @@ def lower_index(tensor, metric, i):
 
     basis = tensor.basis
     dim = len(basis)
-    new_covariant_dim = tensor.covariant_dim + 1
-    new_contravariant_dim = tensor.contravariant_dim - 1
-    new_type = (new_contravariant_dim, new_covariant_dim)
-    covariant_indices = get_all_multiindices(new_covariant_dim)
-    contravariant_indices = get_all_multiindices(new_contravariant_dim)
+    new_covariant_dim = tensor.covariant_dim - 1
+    new_contravariant_dim = tensor.contravariant_dim + 1
+    new_type = (new_covariant_dim, new_contravariant_dim)
+    covariant_indices = get_all_multiindices(new_covariant_dim, dim)
+    contravariant_indices = get_all_multiindices(new_contravariant_dim, dim)
 
     new_tensor_dict = {}
     for a in covariant_indices:
         for b in contravariant_indices:
-            a_extended = a[:i] + (b[0], ) + a[i:]
-            b_reduced = b[1:]
-            value = sum([metric[None, (b[0], r)]*tensor[a_extended, b_reduced] for r in range(dim)])
+            value = 0
+            for r in range(dim):
+                if a == None:
+                    a_extended = (r, )
+                if a != None:
+                    a_extended = a[:i] + (r, ) + a[i:]
+                b_reduced = b[1:]
+                value += metric[None, (b[0], r)]*tensor[a_extended, b_reduced]
             new_tensor_dict[a, b] = value
 
     return Tensor(basis, new_type, new_tensor_dict)
@@ -246,26 +259,35 @@ def raise_index(tensor, metric, j):
             raise ValueError('Tensor and Metric should be on the same basis.')
     else:
         metric = Metric(metric, tensor.basis)
-    
+
+    if tensor.contravariant_dim == 0:
+        raise ValueError('There\'s no index to be lowered.')
+
     if j < 0 or j >= tensor.covariant_dim:
         raise ValueError('The index to be raised ({}) must be between 0 and {}'.format(j,
                                                                         tensor.convariant_dim))
 
     basis = tensor.basis
     dim = len(basis)
-    new_covariant_dim = tensor.covariant_dim - 1
-    new_contravariant_dim = tensor.contravariant_dim + 1
-    new_type = (new_contravariant_dim, new_covariant_dim)
-    covariant_indices = get_all_multiindices(new_covariant_dim)
-    contravariant_indices = get_all_multiindices(new_contravariant_dim)
+    new_covariant_dim = tensor.covariant_dim + 1
+    new_contravariant_dim = tensor.contravariant_dim - 1
+    new_type = (new_covariant_dim, new_contravariant_dim)
+    covariant_indices = get_all_multiindices(new_covariant_dim, dim)
+    contravariant_indices = get_all_multiindices(new_contravariant_dim, dim)
     inverse_metric_matrix = metric.matrix.inv()
 
     new_tensor_dict = {}
     for a in covariant_indices:
         for b in contravariant_indices:
-            a_reduced = a[:-1]
-            b_expanded = b[:j] + (a[-1], ) + b[j:]
-            value = sum([inverse_metric_matrix[b[0], r]*tensor[a_reduced, b_expanded] for r in range(dim)])
+            value = 0
+            for r in range(dim):
+                # Here, a[-1] is b_j.
+                a_reduced = a[:-1]
+                if b == None:
+                    b_expanded = (r, )
+                if b != None:
+                    b_expanded = b[:j] + (r, ) + b[j:]
+                value += inverse_metric_matrix[a[-1], r]*tensor[a_reduced, b_expanded]
             new_tensor_dict[a, b] = value
 
     return Tensor(basis, new_type, new_tensor_dict)
@@ -274,7 +296,7 @@ class LeviCivitaConnection:
     def __init__(self, basis, metric):
         if basis != metric.basis:
             raise ValueError('Basis {} should coincide with the metric basis {}'.format(basis, metric.basis))
-        
+
         self.basis = basis
         self.type = (1,2)
         dim = len(basis)
@@ -294,7 +316,7 @@ class LeviCivitaConnection:
                     sumand += inverse_metric_matrix[r, c] * L
                 dict_of_values[a, b] = (1/2) * sumand
         self.christoffel_symbols = dict_of_values
-    
+
     def __getitem__(self, pair):
         a, b = pair
         if isinstance(a, int):
@@ -335,4 +357,5 @@ class Universe:
     def __init__(self, _metric):
         s, t, x, y, z = sympy.symbols('s t x y z')
         self.metric = _metric
+        self.basis = _metric.basis
         self.connection = get_connection_from_metric(_metric)
