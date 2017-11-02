@@ -155,9 +155,50 @@ def test_raise_index1():
     raised_tensor_2 = gr.Tensor(basis, _type2, dict_of_values_2)
     assert raised_tensor_1 == raised_tensor_2
 
-
 def test_tensor_from_matrix1():
     A = sympy.diag(-1, 1, 1, 1)
     basis = [t, x, y ,z]
     tensor = gr.tensor_from_matrix(A, basis)
     assert tensor[None, (0,0)] == -1
+
+def test_subs_in_tensor1():
+    _type = (1, 1)
+    s = sympy.Symbol('s')
+    dict_of_values = {
+        ((1, ), (0, )): s**2,
+        ((1, ), (1, )): s**3,
+    }
+    basis = [t, x, y, z]
+    tensor_1 = gr.Tensor(basis, _type, dict_of_values)
+    dict_of_values2 = {
+        ((1, ), (0, )): 9,
+        ((1, ), (1, )): 27
+    }
+    tensor_2 = gr.Tensor(basis, _type, dict_of_values2)
+    assert tensor_2 == tensor_1.subs([(s, 3)])
+
+def test_christoffel_symbols1():
+    x0, x1, x2, x3 = sympy.symbols('x_0 x_1 x_2 x_3')
+    basis = [x0, x1, x2, x3]
+    e = sympy.exp(1)
+    matrix = sympy.Matrix([[1, 0, e ** x1, 0],
+                           [0, -1, 0, 0],
+                           [e ** x1, 0, (e**(2*x1)) / 2, 0],
+                           [0, 0, 0, -1]])
+    metric = gr.Metric(matrix, basis)
+    connection = gr.LeviCivitaConnection(basis, metric)
+    christoffel_symbols_1 = connection.christoffel_symbols
+    christoffel_symbols_2 = {
+        ((0, ), (0, 1)): 1,
+        ((0, ), (1, 0)): 1,
+        ((0, ), (1, 2)): (e ** x1) / 2,
+        ((0, ), (2, 1)): (e ** x1) / 2,
+        ((1, ), (0, 2)): (e ** x1) / 2,
+        ((1, ), (2, 0)): (e ** x1) / 2,
+        ((1, ), (2, 2)): (e ** (2*x1))/2,
+        ((2, ), (0, 1)): -e ** (-x1),
+        ((2, ), (1, 0)): -e ** (-x1),
+    }
+    print(christoffel_symbols_1)
+    christoffel_symbols_2 = gr.dict_completer(christoffel_symbols_2, 1, 2, 4)
+    assert christoffel_symbols_1 == christoffel_symbols_2

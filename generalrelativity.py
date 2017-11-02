@@ -37,6 +37,16 @@ def is_multiindex(multiindex, n, c_dimension):
 
     return True
 
+def dict_completer(_dict, c_dimension, ct_dimension, dim):
+    c_indices = get_all_multiindices(c_dimension, dim)
+    ct_indices = get_all_multiindices(ct_dimension, dim)
+    for a in c_indices:
+        for b in ct_indices:
+            if (a,b) in _dict:
+                pass
+            if (a,b) not in _dict:
+                _dict[a,b] = 0
+    return _dict
 
 class Tensor:
     '''
@@ -140,8 +150,10 @@ class Tensor:
         return Tensor(result_basis, result_type, result_dict)
 
     def subs(self, list_of_substitutions):
-        for value in self.dict_of_values.items:
-            value.subs(list_of_substitutions)
+        new_dict = {}
+        for key, value in self.dict_of_values.items():
+            new_dict[key] = value.subs(list_of_substitutions)
+        return Tensor(self.basis, self.type, new_dict)
 
     def get_all_values(self):
         new_dict = {}
