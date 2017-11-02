@@ -37,17 +37,6 @@ def is_multiindex(multiindex, n, c_dimension):
 
     return True
 
-def dict_completer(_dict, c_dimension, ct_dimension, dim):
-    c_indices = get_all_multiindices(c_dimension, dim)
-    ct_indices = get_all_multiindices(ct_dimension, dim)
-    for a in c_indices:
-        for b in ct_indices:
-            if (a,b) in _dict:
-                pass
-            if (a,b) not in _dict:
-                _dict[a,b] = 0
-    return _dict
-
 class Tensor:
     '''
     This class represents a tensor object in a given basis.
@@ -303,6 +292,59 @@ def raise_index(tensor, metric, j):
             new_tensor_dict[a, b] = value
 
     return Tensor(basis, new_type, new_tensor_dict)
+
+
+def _dict_completer(_dict, c_dimension, ct_dimension, dim):
+    c_indices = get_all_multiindices(c_dimension, dim)
+    ct_indices = get_all_multiindices(ct_dimension, dim)
+    new_dict = _dict.copy()
+    for a in c_indices:
+        for b in ct_indices:
+            if (a,b) in new_dict:
+                pass
+            if (a,b) not in new_dict:
+                new_dict[a,b] = 0
+    return new_dict
+
+def _symmetry_completer(_dict):
+    new_dict = _dict.copy()
+    for a, b in new_dict.keys():
+        inverted_b = (b[1], b[0])
+        if (a, inverted_b) in new_dict:
+            if new_dict[a, b] != new_dict[a, inverted_b]:
+                raise ValueError('Inconsistent values for pairs {} and {} of subindices'.format(b, inverted_b))
+        if (a, inverted_b) not in new_dict:
+            new_dict[a, inverted_b] = new_dict[a, b]
+    return new_dict
+
+class ChristoffelSymbols:
+    def __init__(self, basis, _dict):
+        self._internal_dict = _symmetry_completer(_dict)
+        self.dim = len(basis)
+        self.basis = basis
+    
+    def __getitem__(self, pair):
+        a, b = pair
+        if isinstance(a, int):
+            if is_multiindex(b, len(self.basis), 2):
+                if ((a, ), b) in self._internal_dict:
+                    return self._internal_dict[((a, ), b)]
+                else:
+                    return 0
+            else:
+                raise KeyError('{} should be a pair (i.e. a multiindex of length 2)'.format(b))
+        elif is_multiindex(a, len(self.basis), 1):
+            if is_multiindex(b, len(self.basis), 2):
+                if (a, b) in self._internal_dict:
+                    return self._internal_dict[(a, b)]
+                else:
+                    return 0
+            else:
+                raise KeyError('{} should be a pair (i.e. a multiindex of length 2)'.format(b))
+        raise KeyError('There\'s something wrong with the pair of multiindices {} and {}'.format(a, b))
+    
+    def get_all_values(self):
+        return _dict_completer(self._internal_dict)
 
 class LeviCivitaConnection:
     def __init__(self, basis, metric):

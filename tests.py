@@ -199,6 +199,5 @@ def test_christoffel_symbols1():
         ((2, ), (0, 1)): -e ** (-x1),
         ((2, ), (1, 0)): -e ** (-x1),
     }
-    print(christoffel_symbols_1)
-    christoffel_symbols_2 = gr.dict_completer(christoffel_symbols_2, 1, 2, 4)
+    christoffel_symbols_2 = gr._dict_completer(christoffel_symbols_2, 1, 2, 4)
     assert christoffel_symbols_1 == christoffel_symbols_2
