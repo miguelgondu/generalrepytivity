@@ -368,9 +368,14 @@ def get_chrisoffel_symbols_from_metric(metric):
                 dict_of_values[a, b] = (1/2) * sumand
     return ChristoffelSymbols(basis, dict_of_values)
 
-class Universe:
+class Spacetime:
     def __init__(self, _metric):
         s, t, x, y, z = sympy.symbols('s t x y z')
         self.metric = _metric
         self.basis = _metric.basis
-        self.connection = get_connection_from_metric(_metric)
+        self.christoffel_symbols = get_chrisoffel_symbols_from_metric(_metric)
+        '''
+        To-do:
+            - Implement Ricci and Riemann and friends.
+            - Implement a simulation of Gödel's.
+        '''
