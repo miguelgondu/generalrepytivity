@@ -189,14 +189,10 @@ def test_christoffel_symbols1():
     christoffel_symbols_1 = gr.get_chrisoffel_symbols_from_metric(metric)
     christoffel_symbols_2 = {
         ((0, ), (0, 1)): 1,
-        ((0, ), (1, 0)): 1,
         ((0, ), (1, 2)): (e ** x1) / 2,
-        ((0, ), (2, 1)): (e ** x1) / 2,
         ((1, ), (0, 2)): (e ** x1) / 2,
-        ((1, ), (2, 0)): (e ** x1) / 2,
         ((1, ), (2, 2)): (e ** (2*x1))/2,
         ((2, ), (0, 1)): -e ** (-x1),
-        ((2, ), (1, 0)): -e ** (-x1),
     }
     christoffel_symbols_2 = gr._dict_completer(christoffel_symbols_2, 1, 2, 4)
     assert christoffel_symbols_1.get_all_values() == christoffel_symbols_2

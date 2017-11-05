@@ -46,6 +46,9 @@ class Tensor:
     2. the non-zero values, which is a dict whose keys are pairs of the form (a, b)
     where a and b are multi-indices such that $\Gamma^a_b = value$, the values that
     don't appear in this dict are assumed to be 0.
+
+    To-Do:
+        -Implement mul and rmul
     '''
     def __init__(self, basis, _type, dict_of_values):
         self.basis = basis
@@ -137,6 +140,28 @@ class Tensor:
         result_basis = self.basis
         result_type = self.type
         return Tensor(result_basis, result_type, result_dict)
+
+    def __mul__(self, other):
+        if isinstance(other, int) or isinstance(other, float):
+            new_dict = self.dict_of_values.copy()
+            for key in self.dict_of_values:
+                new_dict[key] = self.dict_of_values[key] * other
+            return Tensor(self.basis, self.type, new_dict)
+        
+        if isinstance(other, Tensor):
+            if other.type != (0,0):
+                raise ValueError('Can\'t multiply a tensor with a tensor that isn\'t (0,0)')
+            if other.basis != self.basis:
+                raise ValueError('The basis of {} should be the same as the other tensor'.format(other))
+            
+            other_value = other[None, None]
+            new_dict = self.dict_of_values.copy()
+            for key in self.dict_of_values:
+                new_dict[key] = self.dict_of_values[key] * other_value
+            
+        raise ValueError('{} must be either an int, a float or a (0,0)-Tensor'.format(other))
+    
+    __rmul__ = __mul__
 
     def subs(self, list_of_substitutions):
         new_dict = {}
@@ -293,22 +318,9 @@ def raise_index(tensor, metric, j):
 
     return Tensor(basis, new_type, new_tensor_dict)
 
-
-def _dict_completer(_dict, c_dimension, ct_dimension, dim):
-    c_indices = get_all_multiindices(c_dimension, dim)
-    ct_indices = get_all_multiindices(ct_dimension, dim)
-    new_dict = _dict.copy()
-    for a in c_indices:
-        for b in ct_indices:
-            if (a,b) in new_dict:
-                pass
-            if (a,b) not in new_dict:
-                new_dict[a,b] = 0
-    return new_dict
-
 def _symmetry_completer(_dict):
     new_dict = _dict.copy()
-    for a, b in new_dict.keys():
+    for a, b in _dict.keys():
         inverted_b = (b[1], b[0])
         if (a, inverted_b) in new_dict:
             if new_dict[a, b] != new_dict[a, inverted_b]:
@@ -317,11 +329,24 @@ def _symmetry_completer(_dict):
             new_dict[a, inverted_b] = new_dict[a, b]
     return new_dict
 
+def _dict_completer(_dict, c_dimension, ct_dimension, dim):
+    c_indices = get_all_multiindices(c_dimension, dim)
+    ct_indices = get_all_multiindices(ct_dimension, dim)
+    new_dict = _symmetry_completer(_dict)
+    for a in c_indices:
+        for b in ct_indices:
+            if (a,b) in new_dict:
+                pass
+            if (a,b) not in new_dict:
+                new_dict[a,b] = 0
+    return new_dict
+
 class ChristoffelSymbols:
-    def __init__(self, basis, _dict):
+    def __init__(self, basis, _dict, _metric):
         self._internal_dict = _symmetry_completer(_dict)
         self.dim = len(basis)
         self.basis = basis
+        self.metric = _metric
     
     def __getitem__(self, pair):
         a, b = pair
@@ -366,7 +391,41 @@ def get_chrisoffel_symbols_from_metric(metric):
                 sumand += inverse_metric_matrix[r, c] * L
             if sumand != 0:
                 dict_of_values[a, b] = (1/2) * sumand
-    return ChristoffelSymbols(basis, dict_of_values)
+    return ChristoffelSymbols(basis, dict_of_values, metric)
+
+def get_Riemann_tensor(christoffel_symbols):
+    cs = christoffel_symbols
+    ct_dimension = 1
+    c_dimension = 3
+    dim = len(christoffel_symbols.basis)
+    contravariant_indices = get_all_multiindices(ct_dimension, dim)
+    covariant_indices = get_all_multiindices(c_dimension, dim)
+    dict_of_values = {}
+    for x in contravariant_indices:
+        for y in covariant_indices:
+            d = x[0]
+            c, a, b = y
+            sumand = cs[d, (b,c)].diff(basis[a]) - cs[d, (a,c)].diff(basis[b])
+            for u in range(dim):
+                sumand += cs[d, (a, u)]*cs[u, (c,b)] - cs[d, (b, u)]*cs[u, (c, a)]
+            if sumand != 0:
+                dict_of_values[x, y] = sumand
+    return Tensor(cs.basis, (1, 3), dict_of_values)
+
+def get_Ricci_tensor(christoffel_symbols):
+    Riem = get_Riemann_tensor(christoffel_symbols)
+    return contract_indices(Riem, 0, 1)
+
+def get_scalar_curvature(christoffel_symbols):
+    Temp = get_Ricci_tensor(christoffel_symbols)
+    Temp = raise_index(Temp, christoffel_symbols.metric, 0)
+    return contract_indices(Temp, 0, 0)
+
+def get_Einstein_tensor(christoffel_symbols):
+    Ric = get_Ricci_tensor(christoffel_symbols)
+    R = get_scalar_curvature(christoffel_symbols)
+    g = christoffel_symbols.metric
+    return Ric - (1/2)*R*g
 
 class Spacetime:
     def __init__(self, _metric):
