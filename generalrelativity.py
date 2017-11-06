@@ -435,6 +435,6 @@ class Spacetime:
         self.christoffel_symbols = get_chrisoffel_symbols_from_metric(_metric)
         '''
         To-do:
-            - Implement Ricci and Riemann and friends.
+            - Test Ricci and Riemann and friends.
             - Implement a simulation of Gödel's.
         '''

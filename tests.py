@@ -177,7 +177,7 @@ def test_subs_in_tensor1():
     tensor_2 = gr.Tensor(basis, _type, dict_of_values2)
     assert tensor_2 == tensor_1.subs([(s, 3)])
 
-def test_christoffel_symbols1():
+def test_christoffel_symbols1_godel():
     x0, x1, x2, x3 = sympy.symbols('x_0 x_1 x_2 x_3')
     basis = [x0, x1, x2, x3]
     e = sympy.exp(1)
