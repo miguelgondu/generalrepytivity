@@ -46,9 +46,10 @@ class Tensor:
     2. the non-zero values, which is a dict whose keys are pairs of the form (a, b)
     where a and b are multi-indices such that $\Gamma^a_b = value$, the values that
     don't appear in this dict are assumed to be 0.
-
+    
     To-Do:
-        -Implement mul and rmul
+        -Redo indexing for the None cases.
+        -Fix multiplication on (0,0) case.
     '''
     def __init__(self, basis, _type, dict_of_values):
         self.basis = basis
@@ -137,11 +138,23 @@ class Tensor:
             if key not in result_dict:
                 result_dict[key] = other.dict_of_values[key]
         
+        for key in result_dict.copy():
+            if result_dict[key] == 0:
+                empty = result_dict.pop(key)
+        
         result_basis = self.basis
         result_type = self.type
         return Tensor(result_basis, result_type, result_dict)
 
     def __mul__(self, other):
+        if self.type == (0,0):
+            if isinstance(other, Tensor):
+                if other.basis != self.basis:
+                    raise ValueError('The basis of {} should be the same as the other tensor'.format(other))
+                new_dict = other.dict_of_values.copy()
+                for key in other.dict_of_values:
+                    new_dict[key] = new_dict[key] * self.dict_of_values[(None, None)]
+                return Tensor(self.basis, other.type, new_dict)
         if isinstance(other, int) or isinstance(other, float):
             new_dict = self.dict_of_values.copy()
             for key in self.dict_of_values:
@@ -158,6 +171,7 @@ class Tensor:
             new_dict = self.dict_of_values.copy()
             for key in self.dict_of_values:
                 new_dict[key] = self.dict_of_values[key] * other_value
+            return Tensor(self.basis, self.type, new_dict)
             
         raise ValueError('{} must be either an int, a float or a (0,0)-Tensor'.format(other))
     

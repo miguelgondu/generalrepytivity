@@ -2,6 +2,7 @@
 notebooks/
 general_tester.py
 tex_documents/
+Tutorial.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
