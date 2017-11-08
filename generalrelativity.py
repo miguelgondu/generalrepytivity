@@ -227,6 +227,17 @@ def tensor_from_matrix(matrix, basis):
             dict_of_values[None, (i,j)] = matrix[i, j]
     return Tensor(basis, (0, 2), dict_of_values)
 
+def get_matrix_from_tensor(tensor):
+    '''
+    This function takes an (0,2)-tensor and returns it matrix representation.
+    '''
+    matrix = sympy.zeros(len(tensor.basis))
+    for i in range(len(tensor.basis)):
+        for j in range(len(tensor.basis)):
+            matrix[i, j] = tensor[None, (i,j)]
+    
+    return matrix
+
 class Metric:
     def __init__(self, _matrix, basis):
         if _matrix != _matrix.T:
