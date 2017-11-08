@@ -124,6 +124,27 @@ class Tensor:
         string = string[:-3]
         return string
 
+    def _repr_latex_(self):
+        string = '$'
+        for key in self.dict_of_values:
+            string += '({})'.format(self.dict_of_values[key])
+            a, b = key
+            if a != None:
+                substring_of_a = ''
+                for ind in a:
+                    substring_of_a += '{} \\otimes '.format(self.basis[ind])
+                substring_of_a = substring_of_a[:-len(' \\otimes ')]
+                string += substring_of_a
+            if b != None:
+                if a != None:
+                    string += ' \\otimes '
+                for ind in b:
+                    string += '{}^* \\otimes '.format(self.basis[ind])
+                string = string[:-len(' \\otimes ')]
+            string += ' + '
+        string = string[:-3]
+        return (string + '$').replace('**', '^')
+
     def __add__(self, other):
         if not isinstance(other, Tensor):
             raise ValueError('Cannot add a tensor with a {}'.format(type(other)))
