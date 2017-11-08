@@ -217,14 +217,15 @@ class Tensor:
                     new_dict[a, b] = 0
         return new_dict
 
-def tensor_from_matrix(matrix, basis):
+def get_tensor_from_matrix(matrix, basis):
     '''
     This function takes a square matrix and a basis and retruns a (0,2)-tensor in that basis.
     '''
     dict_of_values = {}
     for i in range(len(matrix.tolist())):
         for j in range(len(matrix.tolist())):
-            dict_of_values[None, (i,j)] = matrix[i, j]
+            if matrix[i, j] != 0:
+                dict_of_values[None, (i,j)] = matrix[i, j]
     return Tensor(basis, (0, 2), dict_of_values)
 
 def get_matrix_from_tensor(tensor):
@@ -246,7 +247,7 @@ class Metric:
             raise ValueError('Matrix should be non-singular.')
         self.matrix = _matrix
         self.basis = basis
-        self.as_tensor = tensor_from_matrix(self.matrix, self.basis)
+        self.as_tensor = get_tensor_from_matrix(self.matrix, self.basis)
     
     def __getitem__(self, key):
         return self.as_tensor[key]
@@ -292,8 +293,12 @@ def lower_index(tensor, metric, i):
     if isinstance(metric, Metric):
         if metric.basis != tensor.basis:
             raise ValueError('Tensor and Metric should be on the same basis.')
-    else:
+    elif isinstance(metric, Tensor):
+        if metric.basis != tensor.basis:
+            raise ValueError('Tensor and Metric should be on the same basis.')
         metric = Metric(metric, tensor.basis)
+    else:
+        raise ValueError('metric should be either a tensor or a metric object.')
     
     if tensor.contravariant_dim == 0:
         raise ValueError('There\'s no index to be lowered.')

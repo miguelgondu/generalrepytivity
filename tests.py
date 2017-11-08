@@ -158,7 +158,7 @@ def test_raise_index1():
 def test_tensor_from_matrix1():
     A = sympy.diag(-1, 1, 1, 1)
     basis = [t, x, y ,z]
-    tensor = gr.tensor_from_matrix(A, basis)
+    tensor = gr.get_tensor_from_matrix(A, basis)
     assert tensor[None, (0,0)] == -1
 
 def test_subs_in_tensor1():
