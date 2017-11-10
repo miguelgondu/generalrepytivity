@@ -29,13 +29,80 @@ def is_multiindex(multiindex, n, c_dimension):
             return True
         else:
             return False
-    if len(multiindex) != c_dimension:
-        return False
-    for value in multiindex:
-        if value < 0 or value >= n:
+    elif isinstance(multiindex, tuple):
+        if len(multiindex) != c_dimension:
             return False
+        for value in multiindex:
+            if isinstance(value, int) or isinstance(value, float):
+                if value < 0 or value >= n:
+                    return False
+            else:
+                return False
+        return True
+    else:
+        return False
 
-    return True
+def _is_valid_key(key, dim, contravariant_dim, covariant_dim):
+    try:
+        a, b = key
+        if not is_multiindex(a, dim, contravariant_dim):
+            raise ValueError('The multiindex {} is inconsistent with dimension {}'.format(a, contravariant_dim))
+        if not is_multiindex(b, dim, covariant_dim):
+            raise ValueError('The multiindex {} is inconsistent with dimensions {}'.format(b, covariant_dim))
+        return True
+    except ValueError:
+        return False
+
+def _dict_completer_for_tensor(_dict, _type, dim):
+    contravariant_dim = _type[0]
+    covariant_dim = _type[1]
+
+    new_dict = {}
+    if contravariant_dim > 0 and covariant_dim == 0:
+        for key in _dict:
+            if _is_valid_key(key, dim, contravariant_dim, covariant_dim):
+                new_dict[key] = _dict[key]
+            elif contravariant_dim == 1 and isinstance(key, int):
+                new_dict[((key, ), None)] = _dict[key]
+            elif is_multiindex(key, dim, contravariant_dim):
+                new_dict[(key, None)] = _dict[key]
+            else:
+                raise ValueError('Can\'t extend the key {} because it isn\'t a {}-multiindex'.format(
+                    key, contravariant_dim))
+        return new_dict
+    
+    if contravariant_dim == 0 and covariant_dim > 0:
+        for key in _dict:
+            if _is_valid_key(key, dim, contravariant_dim, covariant_dim):
+                new_dict[key] = _dict[key]
+            elif covariant_dim == 1 and isinstance(key, int):
+                new_dict[None, (key, )] = _dict[key]
+            elif is_multiindex(key, dim, covariant_dim):
+                new_dict[(None, key)] = _dict[key]
+            else:
+                raise ValueError('Can\'t extend the key {} because it isn\'t a {}-multiindex'.format(
+                    key, covariant_dim))
+        return new_dict
+
+    if contravariant_dim == 1 and covariant_dim > 0:
+        for key in _dict:
+            if _is_valid_key(key, dim, contravariant_dim, covariant_dim):
+                new_dict[key] = _dict[key]
+            elif len(key) == 2:
+                i, b = key
+                if isinstance(i, int) and isinstance(b, int):
+                    new_dict[((i, ), (b, ))] = _dict[key]
+                elif isinstance(i, int) and is_multiindex(b, dim, covariant_dim):
+                    new_dict[(i, ), b] = _dict[key]
+                else:
+                    raise ValueError('{} should be an integer and {} should be a {}-multiindex (or int in case 1).'.format(
+                                                                            i, b, covariant_dim))
+            else:
+                raise ValueError('There should only be two things in {}'.format(key))
+        return new_dict
+    
+    return _dict
+
 
 class Tensor:
     '''
@@ -56,15 +123,18 @@ class Tensor:
         self.contravariant_dim = _type[0]
         self.covariant_dim = _type[1]
         self.type = _type
+        self.dim = len(self.basis)
 
-        for key in dict_of_values:
+        temp_dict = _dict_completer_for_tensor(dict_of_values, _type, self.dim)
+
+        for key in temp_dict:
             a, b = key
             if not is_multiindex(a, len(self.basis), self.contravariant_dim):
                 raise ValueError('The multiindex {} is inconsistent with dimension {}'.format(a, self.contravariant_dim))
             if not is_multiindex(b, len(self.basis), self.covariant_dim):
                 raise ValueError('The multiindex {} is inconsistent with dimensions {}'.format(b, self.covariant_dim))
 
-        self.dict_of_values = dict_of_values
+        self.dict_of_values = temp_dict
 
     def __eq__(self, other):
         if self.basis == other.basis:
@@ -74,6 +144,31 @@ class Tensor:
         return False
 
     def __getitem__(self, pair):
+        if self.contravariant_dim == 0 and self.covariant_dim > 0:
+            if is_multiindex(pair, len(self.basis), self.covariant_dim):
+                if (None, pair) in self.dict_of_values:
+                    return self.dict_of_values[(None, pair)]
+                else:
+                    return 0
+        
+        if self.covariant_dim == 0 and self.contravariant_dim > 0:
+            if is_multiindex(pair, len(self.basis), self.contravariant_dim):
+                if (pair, None) in self.dict_of_values:
+                    return self.dict_of_values[(pair, None)]
+                else:
+                    return 0
+        
+        if self.covariant_dim == 1 and self.contravariant_dim == 1:
+            if len(pair) == 2:
+                i, j = pair
+                if isinstance(i, int) and isinstance(j, int):
+                    if ((i, ), (j, )) in self.dict_of_values:
+                        return self.dict_of_values[(i, ), (j, )]
+                    else:
+                        return 0
+            else:
+                raise KeyError('There should be two things in {}, but there are {}'.format(pair, len(pair)))
+
         a, b = pair
         if isinstance(a, int):
             if isinstance(b, int):

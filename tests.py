@@ -13,7 +13,7 @@ def test_return_value_tensor():
     basis = [t, x, y, z]
     dimensionality = (0, 2)
     metric = gr.Tensor(basis, dimensionality, dict_of_values)
-    assert metric[None, (0,0)] == -1 and metric[None, (1,2)] == 0
+    assert metric[None, (0,0)] == -1 and metric[None, (1,2)] == 0 and metric[2,2] == 1
 
 def test_return_value_tensor2():
     dict_of_values = {
@@ -25,6 +25,48 @@ def test_return_value_tensor2():
     dimensionality = (2, 1)
     tensor = gr.Tensor(basis, dimensionality, dict_of_values)
     assert tensor[(1,1), 0] == 5
+
+def test_dict_completer_for_tensor_1():
+    dict_of_values = {
+        (1, (0, 1)): 1,
+        ((2,), (0, 1)): 2,
+        (0, (1, 1)): 3,
+        (3, (0, 0)): 4
+    }
+    basis = [t, x, y, z]
+    T = gr.Tensor(basis, (1, 2), dict_of_values)
+    assert T[3, (0,0)] == 4 and T[(2, ), (0, 1)] == 2 and T[3, (0,1)] == 0
+
+def test_dict_completer_for_tensor_2():
+    dict_of_values = {
+        (0,0): -1,
+        (1,1): 1,
+        (2,2): 1,
+        (3,3): 1
+    }
+    basis = [t, x, y, z]
+    T = gr.Tensor(basis, (0, 2), dict_of_values)
+    assert T[(0,0)] == -1 and T[(1,2)] == 0
+
+def test_return_value_one_multiindex():
+    dict_of_values = {
+        ((0,0,0), None): 1,
+        ((0,0,1), None): 2,
+        ((0,1,0), None): 3
+    }
+    basis = [t, x, y, z]
+    T = gr.Tensor(basis, (3, 0), dict_of_values)
+    assert T[0,0,1] == 2
+
+def test_return_value_one_one_tensor():
+    dict_of_values = {
+        ((1, ), (0, )): 1,
+        ((0, ), (1, )): 2,
+        ((1, ), (1, )): 3
+    }
+    basis = [t, x, y, z]
+    T = gr.Tensor(basis, (1,1), dict_of_values)
+    assert T[1, 0] == 1 and T[2, 2] == 0
 
 def test_error_with_wrong_key():
     dict_of_values = {
