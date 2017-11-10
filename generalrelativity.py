@@ -100,6 +100,21 @@ def _dict_completer_for_tensor(_dict, _type, dim):
             else:
                 raise ValueError('There should only be two things in {}'.format(key))
         return new_dict
+
+    if contravariant_dim > 0 and covariant_dim == 1:
+        for key in _dict:
+            if _is_valid_key(key, dim, contravariant_dim, covariant_dim):
+                new_dict[key] = _dict[key]
+            elif len(key) == 2:
+                a, j = key
+                if isinstance(a, int) and isisntance(j, int):
+                    new_dict[(a, ), (j, )] = _dict[key]
+                elif is_multiindex(a, dim, contravariant_dim) and isinstance(j, int):
+                    new_dict[a, (j, )] = _dict[key]
+                else:
+                    raise ValueError('{} should be an integer and {} should be a {}-multiindex (or int in case 1).'.format(
+                                                                                                j, a, contravariant_dim))
+        return new_dict
     
     return _dict
 
@@ -126,6 +141,7 @@ class Tensor:
         self.dim = len(self.basis)
 
         temp_dict = _dict_completer_for_tensor(dict_of_values, _type, self.dim)
+        print(temp_dict)
 
         for key in temp_dict:
             a, b = key

@@ -39,6 +39,15 @@ def test_dict_completer_for_tensor_1():
 
 def test_dict_completer_for_tensor_2():
     dict_of_values = {
+        ((0,1), 2): 1,
+        ((2,1), (0, )): 2,
+    }
+    basis = [t, x, y, z]
+    T = gr.Tensor(basis, (2, 1), dict_of_values)
+    assert T[(0,1), 2] == 1 and T[(2,1), 3] == 0
+
+def test_dict_completer_for_tensor_3():
+    dict_of_values = {
         (0,0): -1,
         (1,1): 1,
         (2,2): 1,
