@@ -281,7 +281,7 @@ class Tensor:
                 for key in other.dict_of_values:
                     new_dict[key] = new_dict[key] * self.dict_of_values[(None, None)]
                 return Tensor(self.basis, other.type, new_dict)
-        if isinstance(other, int) or isinstance(other, float):
+        if (isinstance(other, int) or isinstance(other, float)):
             new_dict = self.dict_of_values.copy()
             for key in self.dict_of_values:
                 new_dict[key] = self.dict_of_values[key] * other
@@ -298,8 +298,14 @@ class Tensor:
             for key in self.dict_of_values:
                 new_dict[key] = self.dict_of_values[key] * other_value
             return Tensor(self.basis, self.type, new_dict)
-            
-        raise ValueError('{} must be either an int, a float or a (0,0)-Tensor'.format(other))
+
+        try:
+            new_dict = self.dict_of_values.copy()
+            for key in self.dict_of_values:
+                new_dict[key] = self.dict_of_values[key] * other
+            return Tensor(self.basis, self.type, new_dict)
+        except:
+            raise ValueError('Can\'t multiply a tensor with {}'.format(other))
     
     __rmul__ = __mul__
 
