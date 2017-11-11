@@ -54,6 +54,11 @@ def _is_valid_key(key, dim, contravariant_dim, covariant_dim):
         return False
 
 def _dict_completer_for_tensor(_dict, _type, dim):
+    '''
+    This function checks that the _dict is in proper form and completes in certain cases.
+    It returns a completed version of the _dict if it indeed needs completion, else it 
+    returns the same _dict.
+    '''
     contravariant_dim = _type[0]
     covariant_dim = _type[1]
 
@@ -70,7 +75,7 @@ def _dict_completer_for_tensor(_dict, _type, dim):
                 raise ValueError('Can\'t extend the key {} because it isn\'t a {}-multiindex'.format(
                     key, contravariant_dim))
         return new_dict
-    
+
     if contravariant_dim == 0 and covariant_dim > 0:
         for key in _dict:
             if _is_valid_key(key, dim, contravariant_dim, covariant_dim):
@@ -115,6 +120,10 @@ def _dict_completer_for_tensor(_dict, _type, dim):
                     raise ValueError('{} should be an integer and {} should be a {}-multiindex (or int in case 1).'.format(
                                                                                                 j, a, contravariant_dim))
         return new_dict
+
+    for key in _dict:
+        if not _is_valid_key(key, dim, contravariant_dim, covariant_dim):
+            raise ValueError('Key {} is not compatible with the dimensions')
     
     return _dict
 
@@ -128,10 +137,6 @@ class Tensor:
     2. the non-zero values, which is a dict whose keys are pairs of the form (a, b)
     where a and b are multi-indices such that $\Gamma^a_b = value$, the values that
     don't appear in this dict are assumed to be 0.
-    
-    To-Do:
-        -Redo indexing for the None cases.
-        -Fix multiplication on (0,0) case.
     '''
     def __init__(self, basis, _type, dict_of_values):
         self.basis = basis
@@ -139,18 +144,7 @@ class Tensor:
         self.covariant_dim = _type[1]
         self.type = _type
         self.dim = len(self.basis)
-
-        temp_dict = _dict_completer_for_tensor(dict_of_values, _type, self.dim)
-        print(temp_dict)
-
-        for key in temp_dict:
-            a, b = key
-            if not is_multiindex(a, len(self.basis), self.contravariant_dim):
-                raise ValueError('The multiindex {} is inconsistent with dimension {}'.format(a, self.contravariant_dim))
-            if not is_multiindex(b, len(self.basis), self.covariant_dim):
-                raise ValueError('The multiindex {} is inconsistent with dimensions {}'.format(b, self.covariant_dim))
-
-        self.dict_of_values = temp_dict
+        self.dict_of_values = _dict_completer_for_tensor(dict_of_values, self.type, self.dim)
 
     def __eq__(self, other):
         if self.basis == other.basis:
@@ -161,14 +155,14 @@ class Tensor:
 
     def __getitem__(self, pair):
         if self.contravariant_dim == 0 and self.covariant_dim > 0:
-            if is_multiindex(pair, len(self.basis), self.covariant_dim):
+            if is_multiindex(pair, self.dim, self.covariant_dim):
                 if (None, pair) in self.dict_of_values:
                     return self.dict_of_values[(None, pair)]
                 else:
                     return 0
         
         if self.covariant_dim == 0 and self.contravariant_dim > 0:
-            if is_multiindex(pair, len(self.basis), self.contravariant_dim):
+            if is_multiindex(pair, self.dim, self.contravariant_dim):
                 if (pair, None) in self.dict_of_values:
                     return self.dict_of_values[(pair, None)]
                 else:
@@ -188,26 +182,26 @@ class Tensor:
         a, b = pair
         if isinstance(a, int):
             if isinstance(b, int):
-                if (is_multiindex((a, ), len(self.basis), self.contravariant_dim) and
-                    is_multiindex((b, ), len(self.basis), self.covariant_dim)):
+                if (is_multiindex((a, ), self.dim, self.contravariant_dim) and
+                    is_multiindex((b, ), self.dim, self.covariant_dim)):
                     if ((a, ), (b, )) in self.dict_of_values:
                         return self.dict_of_values[((a, ), (b, ))]
                     else:
                         return 0
                 else:
                     raise KeyError('There\'s a problem with the multiindices ({}, ) and ({}, )'.format(a, b))
-            if is_multiindex(b, len(self.basis), self.covariant_dim):
+            if is_multiindex(b, self.dim, self.covariant_dim):
                 if ((a, ), b) in self.dict_of_values:
                     return self.dict_of_values[((a, ), b)]
                 else:
                     return 0
-        if is_multiindex(a, len(self.basis), self.contravariant_dim):
+        if is_multiindex(a, self.dim, self.contravariant_dim):
             if isinstance(b, int):
                 if (a, (b, )) in self.dict_of_values:
                     return self.dict_of_values[(a, (b, ))]
                 else:
                     return 0
-            if is_multiindex(b, len(self.basis), self.covariant_dim):
+            if is_multiindex(b, self.dim, self.covariant_dim):
                 if (a, b) in self.dict_of_values:
                     return self.dict_of_values[(a, b)]
                 else:
@@ -317,7 +311,7 @@ class Tensor:
 
     def get_all_values(self):
         new_dict = {}
-        dim = len(self.basis)
+        dim = self.dim
         contravariant_multiindices = get_all_multiindices(self.contravariant_dim, dim)
         covariant_multiindices = get_all_multiindices(self.covariant_dim, dim)
         for a in contravariant_multiindices:
@@ -396,7 +390,8 @@ def contract_indices(tensor, i, j):
                 if b == None:
                     b_extended = (r, )
                 sumand += tensor[a_extended, b_extended]
-            new_tensor_dict[a, b] = sumand
+            if sumand != 0:
+                new_tensor_dict[a, b] = sumand
 
     return Tensor(tensor.basis, (contravariant_dim - 1, covariant_dim - 1), new_tensor_dict)
 
@@ -419,7 +414,7 @@ def lower_index(tensor, metric, i):
                                                                         tensor.contravariant_dim))
 
     basis = tensor.basis
-    dim = len(basis)
+    dim = tensor.dim
     new_contravariant_dim = tensor.contravariant_dim - 1
     new_covariant_dim = tensor.covariant_dim + 1
     new_type = (new_contravariant_dim, new_covariant_dim)
@@ -437,7 +432,8 @@ def lower_index(tensor, metric, i):
                     a_extended = a[:i] + (r, ) + a[i:]
                 b_reduced = b[1:]
                 value += metric[None, (b[0], r)]*tensor[a_extended, b_reduced]
-            new_tensor_dict[a, b] = value
+            if value != 0:
+                new_tensor_dict[a, b] = value
 
     return Tensor(basis, new_type, new_tensor_dict)
 
@@ -476,7 +472,8 @@ def raise_index(tensor, metric, j):
                 if b != None:
                     b_expanded = b[:j] + (r, ) + b[j:]
                 value += inverse_metric_matrix[a[-1], r]*tensor[a_reduced, b_expanded]
-            new_tensor_dict[a, b] = value
+            if value != 0:
+                new_tensor_dict[a, b] = value
 
     return Tensor(basis, new_type, new_tensor_dict)
 
@@ -505,23 +502,24 @@ def _dict_completer(_dict, c_dimension, ct_dimension, dim):
 
 class ChristoffelSymbols:
     def __init__(self, basis, _dict, _metric):
-        self._internal_dict = _symmetry_completer(_dict)
+        self.dict_of_values = _symmetry_completer(_dict)
         self.dim = len(basis)
         self.basis = basis
         self.metric = _metric
+        self.as_tensor = Tensor(basis, (1,2), self.dict_of_values)
     
     def __getitem__(self, pair):
         a, b = pair
         if isinstance(a, int):
-            if is_multiindex(b, len(self.basis), 2):
+            if is_multiindex(b, self.dim, 2):
                 if ((a, ), b) in self._internal_dict:
                     return self._internal_dict[((a, ), b)]
                 else:
                     return 0
             else:
                 raise KeyError('{} should be a pair (i.e. a multiindex of length 2)'.format(b))
-        elif is_multiindex(a, len(self.basis), 1):
-            if is_multiindex(b, len(self.basis), 2):
+        elif is_multiindex(a, self.dim, 1):
+            if is_multiindex(b, self.dim, 2):
                 if (a, b) in self._internal_dict:
                     return self._internal_dict[(a, b)]
                 else:
@@ -531,7 +529,7 @@ class ChristoffelSymbols:
         raise KeyError('There\'s something wrong with the pair of multiindices {} and {}'.format(a, b))
     
     def get_all_values(self):
-        return _dict_completer(self._internal_dict, 1, 2, self.dim)
+        return _dict_completer(self.dict_of_values, 1, 2, self.dim)
 
 def get_chrisoffel_symbols_from_metric(metric):
     basis = metric.basis
