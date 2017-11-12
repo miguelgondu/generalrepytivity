@@ -307,6 +307,12 @@ class Tensor:
             new_dict[key] = value.subs(list_of_substitutions)
         return Tensor(self.basis, self.type, new_dict)
 
+    def simplify(self):
+        new_dict = {}
+        for key, value in self.values.items():
+            new_dict[key] = value.simplify()
+        return Tensor(self.basis, self.type, new_dict)
+
     def get_all_values(self):
         new_dict = {}
         dim = self.dim

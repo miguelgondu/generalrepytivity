@@ -11,8 +11,8 @@ def test_return_value_tensor():
         ((), (3,3)): 1
     }
     basis = [t, x, y, z]
-    dimensionality = (0, 2)
-    metric = gr.Tensor(basis, dimensionality, dict_of_values)
+    _type = (0, 2)
+    metric = gr.Tensor(basis, _type, dict_of_values)
     assert metric[(), (0,0)] == -1 and metric[(), (1,2)] == 0 and metric[2,2] == 1
 
 def test_return_value_tensor2():
@@ -22,8 +22,8 @@ def test_return_value_tensor2():
         ((1,0), (2, )): 8,
     }
     basis = [t, x, y, z]
-    dimensionality = (2, 1)
-    tensor = gr.Tensor(basis, dimensionality, dict_of_values)
+    _type = (2, 1)
+    tensor = gr.Tensor(basis, _type, dict_of_values)
     assert tensor[(1,1), 0] == 5
 
 def test_dict_completer_for_tensor_1():
@@ -84,8 +84,8 @@ def test_error_with_wrong_key():
         ((1,0), (2, )): 8,
     }
     basis = [t, x, y, z]
-    dimensionality = (2, 1)
-    tensor = gr.Tensor(basis, dimensionality, dict_of_values)
+    _type = (2, 1)
+    tensor = gr.Tensor(basis, _type, dict_of_values)
     try:
         assert tensor[(1,1), (1,1)] == 5
     except KeyError:
