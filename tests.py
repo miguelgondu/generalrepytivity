@@ -173,7 +173,7 @@ def test_lower_index1():
     ct_indices = gr.get_all_multiindices(1, 4)
     dict_of_values = {(a, b): 2 ** a[0] * 3 ** a[1] * 5**b[0] for a in c_indices for b in ct_indices}
     tensor = gr.Tensor(basis, _type, dict_of_values)
-    metric = gr.Metric(sympy.diag(-1, 1, 1, 1), basis)
+    metric = gr.get_tensor_from_matrix(sympy.diag(-1, 1, 1, 1), basis)
     lowered_tensor_1 = gr.lower_index(tensor, metric, 1)
 
     _type2 = (1, 2)
@@ -193,9 +193,9 @@ def test_raise_index1():
     ct_indices = gr.get_all_multiindices(1, 4)
     dict_of_values = {(a, b): 2 ** a[0] * 3 ** a[1] * 5**b[0] for a in c_indices for b in ct_indices}
     tensor = gr.Tensor(basis, _type, dict_of_values)
-    metric = gr.Metric(sympy.diag(-1, 1, 1, 1), basis)
+    metric = gr.get_tensor_from_matrix(sympy.diag(-1, 1, 1, 1), basis)
     raised_tensor_1 = gr.raise_index(tensor, metric, 0)
-    inv_metric = metric.matrix.inv()
+    inv_metric = gr.get_matrix_from_tensor(metric).inv()
 
     _type2 = (3, 0)
     c_indices_2 = gr.get_all_multiindices(3, 4)

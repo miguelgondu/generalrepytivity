@@ -397,15 +397,13 @@ def contract_indices(tensor, i, j):
     return Tensor(tensor.basis, (contravariant_dim - 1, covariant_dim - 1), new_tensor_dict)
 
 def lower_index(tensor, metric, i):
-    if isinstance(metric, Metric):
+    if isinstance(metric, Tensor):
         if metric.basis != tensor.basis:
             raise ValueError('Tensor and Metric should be on the same basis.')
-    elif isinstance(metric, Tensor):
-        if metric.basis != tensor.basis:
-            raise ValueError('Tensor and Metric should be on the same basis.')
-        metric = Metric(metric, tensor.basis)
+        if metric.type != (0,2):
+            raise ValueError('metric should be a (0,2)-tensor')
     else:
-        raise ValueError('metric should be either a tensor or a metric object.')
+        raise ValueError('metric should be a (0,2)-tensor')
     
     if tensor.contravariant_dim == 0:
         raise ValueError('There\'s no index to be lowered.')
@@ -439,11 +437,13 @@ def lower_index(tensor, metric, i):
     return Tensor(basis, new_type, new_tensor_dict)
 
 def raise_index(tensor, metric, j):
-    if isinstance(metric, Metric):
+    if isinstance(metric, Tensor):
         if metric.basis != tensor.basis:
             raise ValueError('Tensor and Metric should be on the same basis.')
+        if metric.type != (0,2):
+            raise ValueError('metric should be an (0,2)-tensor.')
     else:
-        metric = Metric(metric, tensor.basis)
+        raise ValueError('metric should be an (0,2)-tensor.')
 
     if tensor.covariant_dim == 0:
         raise ValueError('There\'s no index to be lowered.')
@@ -459,7 +459,7 @@ def raise_index(tensor, metric, j):
     new_type = (new_contravariant_dim, new_covariant_dim)
     contravariant_indices = get_all_multiindices(new_contravariant_dim, dim)
     covariant_indices = get_all_multiindices(new_covariant_dim, dim)
-    inverse_metric_matrix = metric.matrix.inv()
+    inverse_metric_matrix = get_matrix_from_tensor(metric).inv()
 
     new_tensor_dict = {}
     for a in contravariant_indices:
