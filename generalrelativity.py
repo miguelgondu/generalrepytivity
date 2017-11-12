@@ -351,6 +351,9 @@ def get_matrix_from_tensor(tensor):
     return matrix
 
 class Metric:
+    '''
+    To-Do: eliminate this class (is unnecesary)
+    '''
     def __init__(self, _matrix, basis):
         if _matrix != _matrix.T:
             raise ValueError('Matrix should be symmetric.')
