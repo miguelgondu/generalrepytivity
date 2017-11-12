@@ -8,28 +8,18 @@ def get_all_multiindices(p, n):
 
     To-Do: I could just return the itertools.product iterable object, no?
     '''
-    if p == 0:
-        return [None]
-    if p == 1:
-        return [(k, ) for k in range(n)]
-    if p > 1:
-        return list(itertools.product(range(n), repeat=p))
+    return list(itertools.product(range(n), repeat=p))
 
 def is_multiindex(multiindex, n, c_dimension):
     '''
-    This function determines if a tuple (or None object) is a multiindex or not
+    This function determines if a tuple is a multiindex or not
     according to these rules:
-    1. None is a multiindex of length 0 (i.e. if the covariant or contravariant dimension
-    is 0, None is the only multiindex)
+    1. () is a multiindex of length 0 (i.e. if the covariant or contravariant dimension
+    is 0, the empty tuple is the only multiindex)
     2. The length of a multiindex must be equal to the c_dimension
     3. Each value in the multiindex varies between 0 and n-1.
     '''
-    if multiindex == None:
-        if c_dimension == 0:
-            return True
-        else:
-            return False
-    elif isinstance(multiindex, tuple):
+    if isinstance(multiindex, tuple):
         if len(multiindex) != c_dimension:
             return False
         for value in multiindex:
@@ -68,9 +58,9 @@ def _dict_completer_for_tensor(_dict, _type, dim):
             if _is_valid_key(key, dim, contravariant_dim, covariant_dim):
                 new_dict[key] = _dict[key]
             elif contravariant_dim == 1 and isinstance(key, int):
-                new_dict[((key, ), None)] = _dict[key]
+                new_dict[((key, ), ())] = _dict[key]
             elif is_multiindex(key, dim, contravariant_dim):
-                new_dict[(key, None)] = _dict[key]
+                new_dict[(key, ())] = _dict[key]
             else:
                 raise ValueError('Can\'t extend the key {} because it isn\'t a {}-multiindex'.format(
                     key, contravariant_dim))
@@ -81,9 +71,9 @@ def _dict_completer_for_tensor(_dict, _type, dim):
             if _is_valid_key(key, dim, contravariant_dim, covariant_dim):
                 new_dict[key] = _dict[key]
             elif covariant_dim == 1 and isinstance(key, int):
-                new_dict[None, (key, )] = _dict[key]
+                new_dict[(), (key, )] = _dict[key]
             elif is_multiindex(key, dim, covariant_dim):
-                new_dict[(None, key)] = _dict[key]
+                new_dict[((), key)] = _dict[key]
             else:
                 raise ValueError('Can\'t extend the key {} because it isn\'t a {}-multiindex'.format(
                     key, covariant_dim))
@@ -156,15 +146,15 @@ class Tensor:
     def __getitem__(self, pair):
         if self.contravariant_dim == 0 and self.covariant_dim > 0:
             if is_multiindex(pair, self.dim, self.covariant_dim):
-                if (None, pair) in self.dict_of_values:
-                    return self.dict_of_values[(None, pair)]
+                if ((), pair) in self.dict_of_values:
+                    return self.dict_of_values[((), pair)]
                 else:
                     return 0
         
         if self.covariant_dim == 0 and self.contravariant_dim > 0:
             if is_multiindex(pair, self.dim, self.contravariant_dim):
-                if (pair, None) in self.dict_of_values:
-                    return self.dict_of_values[(pair, None)]
+                if (pair, ()) in self.dict_of_values:
+                    return self.dict_of_values[(pair, ())]
                 else:
                     return 0
         
@@ -195,6 +185,8 @@ class Tensor:
                     return self.dict_of_values[((a, ), b)]
                 else:
                     return 0
+            else:
+                raise KeyError('There\'s a problem with multiindex {}'.format(b))
         if is_multiindex(a, self.dim, self.contravariant_dim):
             if isinstance(b, int):
                 if (a, (b, )) in self.dict_of_values:
@@ -213,14 +205,14 @@ class Tensor:
         for key in self.dict_of_values:
             string += '({})'.format(self.dict_of_values[key])
             a, b = key
-            if a != None:
+            if a != ():
                 substring_of_a = ''
                 for ind in a:
                     substring_of_a += '{} \\otimes '.format(self.basis[ind])
                 substring_of_a = substring_of_a[:-len(' \\otimes ')]
                 string += substring_of_a
-            if b != None:
-                if a != None:
+            if b != ():
+                if a != ():
                     string += ' \\otimes '
                 for ind in b:
                     string += '{}* \\otimes '.format(self.basis[ind])
@@ -234,14 +226,14 @@ class Tensor:
         for key in self.dict_of_values:
             string += '({})'.format(self.dict_of_values[key])
             a, b = key
-            if a != None:
+            if a != ():
                 substring_of_a = ''
                 for ind in a:
                     substring_of_a += '{} \\otimes '.format(self.basis[ind])
                 substring_of_a = substring_of_a[:-len(' \\otimes ')]
                 string += substring_of_a
-            if b != None:
-                if a != None:
+            if b != ():
+                if a != ():
                     string += ' \\otimes '
                 for ind in b:
                     string += '{}^* \\otimes '.format(self.basis[ind])
@@ -279,7 +271,7 @@ class Tensor:
                     raise ValueError('The basis of {} should be the same as the other tensor'.format(other))
                 new_dict = other.dict_of_values.copy()
                 for key in other.dict_of_values:
-                    new_dict[key] = new_dict[key] * self.dict_of_values[(None, None)]
+                    new_dict[key] = new_dict[key] * self.dict_of_values[((), ())]
                 return Tensor(self.basis, other.type, new_dict)
         if (isinstance(other, int) or isinstance(other, float)):
             new_dict = self.dict_of_values.copy()
@@ -293,7 +285,7 @@ class Tensor:
             if other.basis != self.basis:
                 raise ValueError('The basis of {} should be the same as the other tensor'.format(other))
             
-            other_value = other[None, None]
+            other_value = other[(), ()]
             new_dict = self.dict_of_values.copy()
             for key in self.dict_of_values:
                 new_dict[key] = self.dict_of_values[key] * other_value
@@ -336,7 +328,7 @@ def get_tensor_from_matrix(matrix, basis):
     for i in range(len(matrix.tolist())):
         for j in range(len(matrix.tolist())):
             if matrix[i, j] != 0:
-                dict_of_values[None, (i,j)] = matrix[i, j]
+                dict_of_values[(), (i,j)] = matrix[i, j]
     return Tensor(basis, (0, 2), dict_of_values)
 
 def get_matrix_from_tensor(tensor):
@@ -346,7 +338,7 @@ def get_matrix_from_tensor(tensor):
     matrix = sympy.zeros(len(tensor.basis))
     for i in range(len(tensor.basis)):
         for j in range(len(tensor.basis)):
-            matrix[i, j] = tensor[None, (i,j)]
+            matrix[i, j] = tensor[(), (i,j)]
     
     return matrix
 
@@ -390,13 +382,13 @@ def contract_indices(tensor, i, j):
         for b in covariant_indices:
             sumand = 0
             for r in range(dim):
-                if a != None:
+                if a != ():
                     a_extended = a[:i] + (r, ) + a[i:]
-                if a == None:
+                if a == ():
                     a_extended = (r, )
-                if b != None:
+                if b != ():
                     b_extended = b[:j] + (r, ) + b[j:]
-                if b == None:
+                if b == ():
                     b_extended = (r, )
                 sumand += tensor[a_extended, b_extended]
             if sumand != 0:
@@ -435,12 +427,12 @@ def lower_index(tensor, metric, i):
         for b in covariant_indices:
             value = 0
             for r in range(dim):
-                if a == None:
+                if a == ():
                     a_extended = (r, )
-                if a != None:
+                if a != ():
                     a_extended = a[:i] + (r, ) + a[i:]
                 b_reduced = b[1:]
-                value += metric[None, (b[0], r)]*tensor[a_extended, b_reduced]
+                value += metric[(), (b[0], r)]*tensor[a_extended, b_reduced]
             if value != 0:
                 new_tensor_dict[a, b] = value
 
@@ -476,9 +468,9 @@ def raise_index(tensor, metric, j):
             for r in range(dim):
                 # Here, a[-1] is b_j.
                 a_reduced = a[:-1]
-                if b == None:
+                if b == ():
                     b_expanded = (r, )
-                if b != None:
+                if b != ():
                     b_expanded = b[:j] + (r, ) + b[j:]
                 value += inverse_metric_matrix[a[-1], r]*tensor[a_reduced, b_expanded]
             if value != 0:

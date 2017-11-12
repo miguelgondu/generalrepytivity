@@ -5,15 +5,15 @@ t, x, y, z = sympy.symbols('t x y z')
 
 def test_return_value_tensor():
     dict_of_values = {
-        (None, (0,0)): -1,
-        (None, (1,1)): 1,
-        (None, (2,2)): 1,
-        (None, (3,3)): 1
+        ((), (0,0)): -1,
+        ((), (1,1)): 1,
+        ((), (2,2)): 1,
+        ((), (3,3)): 1
     }
     basis = [t, x, y, z]
     dimensionality = (0, 2)
     metric = gr.Tensor(basis, dimensionality, dict_of_values)
-    assert metric[None, (0,0)] == -1 and metric[None, (1,2)] == 0 and metric[2,2] == 1
+    assert metric[(), (0,0)] == -1 and metric[(), (1,2)] == 0 and metric[2,2] == 1
 
 def test_return_value_tensor2():
     dict_of_values = {
@@ -59,9 +59,9 @@ def test_dict_completer_for_tensor_3():
 
 def test_return_value_one_multiindex():
     dict_of_values = {
-        ((0,0,0), None): 1,
-        ((0,0,1), None): 2,
-        ((0,1,0), None): 3
+        ((0,0,0), ()): 1,
+        ((0,0,1), ()): 2,
+        ((0,1,0), ()): 3
     }
     basis = [t, x, y, z]
     T = gr.Tensor(basis, (3, 0), dict_of_values)
@@ -160,7 +160,7 @@ def test_index_contraction2():
     contracted_tensor_1 = gr.contract_indices(tensor, 1, 0)
 
     dict_of_values2 = {
-        ((a, ), None): sum([2**a * 3**r * 5**r for r in range(dim)]) for a in range(dim)
+        ((a, ), ()): sum([2**a * 3**r * 5**r for r in range(dim)]) for a in range(dim)
     }
     contracted_tensor_2 = gr.Tensor(basis, (1, 0), dict_of_values2)
     assert contracted_tensor_1 == contracted_tensor_2
@@ -180,7 +180,7 @@ def test_lower_index1():
     c_indices_2 = gr.get_all_multiindices(1, 4)
     ct_indices_2 = gr.get_all_multiindices(2, 4)
     dict_of_values_2 = {
-        (a, b): sum([metric[None, (r, b[0])]*tensor[(a[0], r), b[1]] for r in range(dim)]) for a in c_indices_2 for b in ct_indices_2
+        (a, b): sum([metric[(), (r, b[0])]*tensor[(a[0], r), b[1]] for r in range(dim)]) for a in c_indices_2 for b in ct_indices_2
     }
     lowered_tensor_2 = gr.Tensor(basis, _type2, dict_of_values_2)
     assert lowered_tensor_1 == lowered_tensor_2
@@ -210,7 +210,7 @@ def test_tensor_from_matrix1():
     A = sympy.diag(-1, 1, 1, 1)
     basis = [t, x, y ,z]
     tensor = gr.get_tensor_from_matrix(A, basis)
-    assert tensor[None, (0,0)] == -1
+    assert tensor[(), (0,0)] == -1
 
 def test_subs_in_tensor1():
     _type = (1, 1)
