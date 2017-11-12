@@ -492,8 +492,8 @@ def _dict_completer(_dict, c_dimension, ct_dimension, dim):
     return new_dict
 
 class ChristoffelSymbols:
-    def __init__(self, basis, _dict, _metric):
-        self.values = _symmetry_completer(_dict)
+    def __init__(self, basis, values, _metric=None):
+        self.values = _symmetry_completer(values)
         self.dim = len(basis)
         self.basis = basis
         self.metric = _metric
@@ -503,18 +503,18 @@ class ChristoffelSymbols:
         a, b = pair
         if isinstance(a, int):
             if is_multiindex(b, self.dim, 2):
-                if ((a, ), b) in self._internal_dict:
-                    return self._internal_dict[((a, ), b)]
+                if ((a, ), b) in self.values:
+                    return sympy.simplify(self.values[((a, ), b)])
                 else:
-                    return 0
+                    return sympy.simplify(0)
             else:
                 raise KeyError('{} should be a pair (i.e. a multiindex of length 2)'.format(b))
         elif is_multiindex(a, self.dim, 1):
             if is_multiindex(b, self.dim, 2):
-                if (a, b) in self._internal_dict:
-                    return self._internal_dict[(a, b)]
+                if (a, b) in self.values:
+                    return sympy.simplify(self.values[(a, b)])
                 else:
-                    return 0
+                    return sympy.simplify(0)
             else:
                 raise KeyError('{} should be a pair (i.e. a multiindex of length 2)'.format(b))
         raise KeyError('There\'s something wrong with the pair of multiindices {} and {}'.format(a, b))
@@ -549,6 +549,7 @@ def get_Riemann_tensor(christoffel_symbols):
     cs = christoffel_symbols
     ct_dimension = 1
     c_dimension = 3
+    basis = christoffel_symbols.basis
     dim = len(christoffel_symbols.basis)
     contravariant_indices = get_all_multiindices(ct_dimension, dim)
     covariant_indices = get_all_multiindices(c_dimension, dim)
@@ -577,7 +578,7 @@ def get_Einstein_tensor(christoffel_symbols):
     Ric = get_Ricci_tensor(christoffel_symbols)
     R = get_scalar_curvature(christoffel_symbols)
     g = christoffel_symbols.metric
-    return Ric - (1/2)*R*g
+    return Ric + (-1/2)*R*g
 
 class Spacetime:
     def __init__(self, _metric):

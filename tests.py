@@ -177,10 +177,10 @@ def test_lower_index1():
     lowered_tensor_1 = gr.lower_index(tensor, metric, 1)
 
     _type2 = (1, 2)
-    c_indices_2 = gr.get_all_multiindices(1, 4)
-    ct_indices_2 = gr.get_all_multiindices(2, 4)
+    ct_indices_2 = gr.get_all_multiindices(1, 4)
+    c_indices_2 = gr.get_all_multiindices(2, 4)
     dict_of_values_2 = {
-        (a, b): sum([metric[(), (r, b[0])]*tensor[(a[0], r), b[1]] for r in range(dim)]) for a in c_indices_2 for b in ct_indices_2
+        (a, b): sum([metric[(), (r, b[0])]*tensor[(a[0], r), b[1]] for r in range(dim)]) for a in ct_indices_2 for b in c_indices_2
     }
     lowered_tensor_2 = gr.Tensor(basis, _type2, dict_of_values_2)
     assert lowered_tensor_1 == lowered_tensor_2
