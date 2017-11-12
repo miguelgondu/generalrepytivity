@@ -342,22 +342,6 @@ def get_matrix_from_tensor(tensor):
     
     return matrix
 
-class Metric:
-    '''
-    To-Do: eliminate this class (is unnecesary)
-    '''
-    def __init__(self, _matrix, basis):
-        if _matrix != _matrix.T:
-            raise ValueError('Matrix should be symmetric.')
-        if _matrix.det() == 0:
-            raise ValueError('Matrix should be non-singular.')
-        self.matrix = _matrix
-        self.basis = basis
-        self.as_tensor = get_tensor_from_matrix(self.matrix, self.basis)
-    
-    def __getitem__(self, key):
-        return self.as_tensor[key]
-
 def contract_indices(tensor, i, j):
     '''
     Returns the resulting tensor of formally contracting the indices i and j 
@@ -535,7 +519,8 @@ class ChristoffelSymbols:
 def get_chrisoffel_symbols_from_metric(metric):
     basis = metric.basis
     dim = len(basis)
-    inverse_metric_matrix = metric.matrix.inv()
+    metric_matrix = get_matrix_from_tensor(metric)
+    inverse_metric_matrix = metric_matrix.inv()
     _type = (1,2)
     contravariant_indices = get_all_multiindices(1, dim)
     covariant_indices = get_all_multiindices(2, dim)
@@ -546,9 +531,9 @@ def get_chrisoffel_symbols_from_metric(metric):
             c = a[0]
             sumand = 0
             for r in range(dim):
-                L = (metric.matrix[j, r].diff(basis[i])
-                     + metric.matrix[i, r].diff(basis[j])
-                     - metric.matrix[i, j].diff(basis[r]))
+                L = (metric_matrix[j, r].diff(basis[i])
+                     + metric_matrix[i, r].diff(basis[j])
+                     - metric_matrix[i, j].diff(basis[r]))
                 sumand += inverse_metric_matrix[r, c] * L
             if sumand != 0:
                 dict_of_values[a, b] = (1/2) * sumand

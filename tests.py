@@ -236,7 +236,7 @@ def test_christoffel_symbols1_godel():
                            [0, -1, 0, 0],
                            [e ** x1, 0, (e**(2*x1)) / 2, 0],
                            [0, 0, 0, -1]])
-    metric = gr.Metric(matrix, basis)
+    metric = gr.get_tensor_from_matrix(matrix, basis)
     christoffel_symbols_1 = gr.get_chrisoffel_symbols_from_metric(metric)
     christoffel_symbols_2 = {
         ((0, ), (0, 1)): 1,
