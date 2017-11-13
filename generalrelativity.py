@@ -147,25 +147,25 @@ class Tensor:
         if self.ct_dim == 0 and self.c_dim > 0:
             if is_multiindex(pair, self.dim, self.c_dim):
                 if ((), pair) in self.values:
-                    return self.values[((), pair)]
+                    return sympy.simplify(self.values[((), pair)])
                 else:
-                    return 0
+                    return sympy.simplify(0)
         
         if self.c_dim == 0 and self.ct_dim > 0:
             if is_multiindex(pair, self.dim, self.ct_dim):
                 if (pair, ()) in self.values:
-                    return self.values[(pair, ())]
+                    return sympy.simplify(self.values[(pair, ())])
                 else:
-                    return 0
+                    return sympy.simplify(0)
         
         if self.c_dim == 1 and self.ct_dim == 1:
             if len(pair) == 2:
                 i, j = pair
                 if isinstance(i, int) and isinstance(j, int):
                     if ((i, ), (j, )) in self.values:
-                        return self.values[(i, ), (j, )]
+                        return sympy.simplify(self.values[(i, ), (j, )])
                     else:
-                        return 0
+                        return sympy.simplify(0)
             else:
                 raise KeyError('There should be two things in {}, but there are {}'.format(pair, len(pair)))
 
@@ -175,29 +175,29 @@ class Tensor:
                 if (is_multiindex((a, ), self.dim, self.ct_dim) and
                     is_multiindex((b, ), self.dim, self.c_dim)):
                     if ((a, ), (b, )) in self.values:
-                        return self.values[((a, ), (b, ))]
+                        return sympy.simplify(self.values[((a, ), (b, ))])
                     else:
-                        return 0
+                        return sympy.simplify(0)
                 else:
                     raise KeyError('There\'s a problem with the multiindices ({}, ) and ({}, )'.format(a, b))
             if is_multiindex(b, self.dim, self.c_dim):
                 if ((a, ), b) in self.values:
-                    return self.values[((a, ), b)]
+                    return sympy.simplify(self.values[((a, ), b)])
                 else:
-                    return 0
+                    return sympy.simplify(0)
             else:
                 raise KeyError('There\'s a problem with multiindex {}'.format(b))
         if is_multiindex(a, self.dim, self.ct_dim):
             if isinstance(b, int):
                 if (a, (b, )) in self.values:
-                    return self.values[(a, (b, ))]
+                    return sympy.simplify(self.values[(a, (b, ))])
                 else:
-                    return 0
+                    return sympy.simplify(0)
             if is_multiindex(b, self.dim, self.c_dim):
                 if (a, b) in self.values:
-                    return self.values[(a, b)]
+                    return sympy.simplify(self.values[(a, b)])
                 else:
-                    return 0
+                    return sympy.simplify(0)
         raise KeyError('There\'s something wrong with the pair of multiindices {} and {}'.format(a, b))
 
     def __repr__(self):
@@ -491,43 +491,11 @@ def _dict_completer(_dict, c_dimension, ct_dimension, dim):
                 new_dict[a,b] = 0
     return new_dict
 
-class ChristoffelSymbols:
-    def __init__(self, basis, values, _metric=None):
-        self.values = _symmetry_completer(values)
-        self.dim = len(basis)
-        self.basis = basis
-        self.metric = _metric
-        self.as_tensor = Tensor(basis, (1,2), self.values)
-    
-    def __getitem__(self, pair):
-        a, b = pair
-        if isinstance(a, int):
-            if is_multiindex(b, self.dim, 2):
-                if ((a, ), b) in self.values:
-                    return sympy.simplify(self.values[((a, ), b)])
-                else:
-                    return sympy.simplify(0)
-            else:
-                raise KeyError('{} should be a pair (i.e. a multiindex of length 2)'.format(b))
-        elif is_multiindex(a, self.dim, 1):
-            if is_multiindex(b, self.dim, 2):
-                if (a, b) in self.values:
-                    return sympy.simplify(self.values[(a, b)])
-                else:
-                    return sympy.simplify(0)
-            else:
-                raise KeyError('{} should be a pair (i.e. a multiindex of length 2)'.format(b))
-        raise KeyError('There\'s something wrong with the pair of multiindices {} and {}'.format(a, b))
-    
-    def get_all_values(self):
-        return _dict_completer(self.values, 1, 2, self.dim)
-
 def get_chrisoffel_symbols_from_metric(metric):
     basis = metric.basis
     dim = len(basis)
     metric_matrix = get_matrix_from_tensor(metric)
     inverse_metric_matrix = metric_matrix.inv()
-    _type = (1,2)
     contravariant_indices = get_all_multiindices(1, dim)
     covariant_indices = get_all_multiindices(2, dim)
     values = {}
@@ -543,7 +511,7 @@ def get_chrisoffel_symbols_from_metric(metric):
                 sumand += inverse_metric_matrix[r, c] * L
             if sumand != 0:
                 values[a, b] = (1/2) * sumand
-    return ChristoffelSymbols(basis, values, metric)
+    return Tensor(basis, (1,2), values)
 
 def get_Riemann_tensor(christoffel_symbols):
     cs = christoffel_symbols
@@ -569,15 +537,15 @@ def get_Ricci_tensor(christoffel_symbols):
     Riem = get_Riemann_tensor(christoffel_symbols)
     return contract_indices(Riem, 0, 1)
 
-def get_scalar_curvature(christoffel_symbols):
+def get_scalar_curvature(christoffel_symbols, metric):
     Temp = get_Ricci_tensor(christoffel_symbols)
-    Temp = raise_index(Temp, christoffel_symbols.metric, 0)
+    Temp = raise_index(Temp, metric, 0)
     return contract_indices(Temp, 0, 0)
 
-def get_Einstein_tensor(christoffel_symbols):
+def get_Einstein_tensor(christoffel_symbols, metric):
     Ric = get_Ricci_tensor(christoffel_symbols)
-    R = get_scalar_curvature(christoffel_symbols)
-    g = christoffel_symbols.metric
+    R = get_scalar_curvature(christoffel_symbols, metric)
+    g = metric
     return Ric + (-1/2)*R*g
 
 class Spacetime:

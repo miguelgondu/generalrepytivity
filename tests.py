@@ -247,3 +247,18 @@ def test_christoffel_symbols1_godel():
     }
     christoffel_symbols_2 = gr._dict_completer(christoffel_symbols_2, 1, 2, 4)
     assert christoffel_symbols_1.get_all_values() == christoffel_symbols_2
+
+def test_scalar_curvature_godel():
+    x0, x1, x2, x3 = sympy.symbols('x_0 x_1 x_2 x_3')
+    basis = [x0, x1, x2, x3]
+    e = sympy.exp(1)
+    a = sympy.Symbol('a')
+    matrix = (a**2)*sympy.Matrix([[1, 0, e ** x1, 0],
+                           [0, -1, 0, 0],
+                           [e ** x1, 0, (e**(2*x1)) / 2, 0],
+                           [0, 0, 0, -1]])
+    metric = gr.get_tensor_from_matrix(matrix, basis)
+    cs = gr.get_chrisoffel_symbols_from_metric(metric)
+    R = gr.get_scalar_curvature(cs, metric)
+    R = R[(), ()]
+    assert R == 1.0/a**2
