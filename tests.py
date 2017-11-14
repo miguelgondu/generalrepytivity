@@ -135,6 +135,13 @@ def test_wrong_dict_in_creation2():
     except ValueError:
         assert True
 
+def test_tensor_from_function():
+    _type = (1, 2)
+    basis = [t, x, y, z]
+    f = lambda a,b: 2**a[0] * 3**b[0] * 5**b[1]
+    T = gr.Tensor.from_function(basis, _type, f)
+    assert T[1, (2, 3)] == 2 * 3**2 * 5**3
+
 def test_index_contraction1():
     _type = (2, 2)
     indices = gr.get_all_multiindices(2, 4)

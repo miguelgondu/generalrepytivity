@@ -326,6 +326,26 @@ class Tensor:
                     new_dict[a, b] = 0
         return new_dict
 
+    @classmethod
+    def from_function(cls, basis, _type, func):
+        '''
+        This method allows you to create a tensor from a function. The function func must 
+        take 2 multiindices and turn them into a value.
+
+        For example:
+        def func(a, b):
+            return 2**a[0] * 3**b[0] * 5**b[1]
+        is a valid function for a (1,2)-Tensor.
+        '''
+        ct_dim, c_dim = _type
+        dim = len(basis)
+        ct_indices = get_all_multiindices(ct_dim, dim)
+        c_indices = get_all_multiindices(c_dim, dim)
+        values = {
+            (a,b): func(a,b) for a in ct_indices for b in c_indices if func(a,b) != 0
+        }
+        return cls(basis, _type, values)
+
 def get_tensor_from_matrix(matrix, basis):
     '''
     This function takes a square matrix and a basis and retruns a (0,2)-tensor in that basis.
