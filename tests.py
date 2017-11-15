@@ -269,3 +269,18 @@ def test_scalar_curvature_godel():
     R = gr.get_scalar_curvature(cs, metric)
     R = R[(), ()]
     assert R == 1.0/a**2
+
+# def test_scalar_curvature_Schwarzschild():
+#     t, r, theta, phi = sympy.symbols('t r \\theta \\phi')
+#     Rs = sympy.Symbol('R_s')
+#     basis = [t, r, theta, phi]
+#     values = {
+#         (0,0): -(1-Rs/r),
+#         (1,1): 1/(1-Rs/r),
+#         (2,2): r**2,
+#         (3,3): r**2 * sympy.sin(theta)**2
+#     }
+#     g = gr.Tensor(basis, (0, 2), values)
+#     cs = gr.get_chrisoffel_symbols_from_metric(g)
+#     R = gr.get_scalar_curvature(cs, g)
+#     assert R[(), ()] == 0

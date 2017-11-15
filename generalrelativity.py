@@ -53,6 +53,13 @@ def _dict_completer_for_tensor(_dict, _type, dim):
     c_dim = _type[1]
 
     new_dict = {}
+
+    if _dict == {}:
+        new_dict = {
+            (tuple(0 for i in range(ct_dim)), tuple(0 for i in range(c_dim))): 0
+        }
+        return new_dict
+
     if ct_dim > 0 and c_dim == 0:
         for key in _dict:
             if _is_valid_key(key, dim, ct_dim, c_dim):
@@ -137,6 +144,8 @@ class Tensor:
         self.values = _dict_completer_for_tensor(values, self.type, self.dim)
 
     def __eq__(self, other):
+        if not isinstance(other, Tensor):
+            return False
         if self.basis == other.basis:
             if self.type == other.type:
                 if self.get_all_values() == other.get_all_values():
@@ -201,6 +210,8 @@ class Tensor:
         raise KeyError('There\'s something wrong with the pair of multiindices {} and {}'.format(a, b))
 
     def __repr__(self):
+        if set(self.values.values()) == set([0]):
+            return '0'
         string = ''
         for key in self.values:
             string += '({})'.format(self.values[key])
@@ -222,6 +233,8 @@ class Tensor:
         return string
 
     def _repr_latex_(self):
+        if set(self.values.values()) == set([0]):
+            return '$0$'
         string = '$'
         for key in self.values:
             string += '({})'.format(self.values[key])
@@ -262,7 +275,7 @@ class Tensor:
         
         result_basis = self.basis
         result_type = self.type
-        return Tensor(result_basis, result_type, result_dict)
+        return Tensor(result_basis, result_type, result_dict).simplify()
 
     def __mul__(self, other):
         if self.type == (0,0):
@@ -272,30 +285,30 @@ class Tensor:
                 new_dict = other.values.copy()
                 for key in other.values:
                     new_dict[key] = new_dict[key] * self.values[((), ())]
-                return Tensor(self.basis, other.type, new_dict)
+                return Tensor(self.basis, other.type, new_dict).simplify()
         if (isinstance(other, int) or isinstance(other, float)):
             new_dict = self.values.copy()
             for key in self.values:
                 new_dict[key] = self.values[key] * other
-            return Tensor(self.basis, self.type, new_dict)
+            return Tensor(self.basis, self.type, new_dict).simplify()
         
         if isinstance(other, Tensor):
             if other.type != (0,0):
                 raise ValueError('Can\'t multiply a tensor with a tensor that isn\'t (0,0)')
             if other.basis != self.basis:
                 raise ValueError('The basis of {} should be the same as the other tensor'.format(other))
-            
+                
             other_value = other[(), ()]
             new_dict = self.values.copy()
             for key in self.values:
                 new_dict[key] = self.values[key] * other_value
-            return Tensor(self.basis, self.type, new_dict)
+            return Tensor(self.basis, self.type, new_dict).simplify()
 
         try:
             new_dict = self.values.copy()
             for key in self.values:
                 new_dict[key] = self.values[key] * other
-            return Tensor(self.basis, self.type, new_dict)
+            return Tensor(self.basis, self.type, new_dict).simplify()
         except:
             raise ValueError('Can\'t multiply a tensor with {}'.format(other))
     
@@ -305,9 +318,10 @@ class Tensor:
         new_dict = {}
         for key, value in self.values.items():
             new_dict[key] = value.subs(list_of_substitutions)
-        return Tensor(self.basis, self.type, new_dict)
+        return Tensor(self.basis, self.type, new_dict).simplify()
 
     def simplify(self):
+        # To-Do: reimplement simplify taking into account the possible 0 result.
         new_dict = {}
         for key, value in self.values.items():
             new_dict[key] = value.simplify()
@@ -355,7 +369,7 @@ def get_tensor_from_matrix(matrix, basis):
         for j in range(len(matrix.tolist())):
             if matrix[i, j] != 0:
                 values[(), (i,j)] = matrix[i, j]
-    return Tensor(basis, (0, 2), values)
+    return Tensor(basis, (0, 2), values).simplify()
 
 def get_matrix_from_tensor(tensor):
     '''
@@ -403,8 +417,11 @@ def contract_indices(tensor, i, j):
                 sumand += tensor[a_extended, b_extended]
             if sumand != 0:
                 new_tensor_dict[a, b] = sumand
+    
+    # if new_tensor_dict == {}:
+    #     new_tensor_dict = {(a, b): 0 for a in contravariant_indices for b in covariant_indices}
 
-    return Tensor(tensor.basis, (ct_dim - 1, c_dim - 1), new_tensor_dict)
+    return Tensor(tensor.basis, (ct_dim - 1, c_dim - 1), new_tensor_dict).simplify()
 
 def lower_index(tensor, metric, i):
     if isinstance(metric, Tensor):
@@ -443,8 +460,12 @@ def lower_index(tensor, metric, i):
                 value += metric[(), (b[0], r)]*tensor[a_extended, b_reduced]
             if value != 0:
                 new_tensor_dict[a, b] = value
+    
+    # Fix: what if its the 0 tensor!
+    # if new_tensor_dict == {}:
+    #     new_tensor_dict = {(a, b): 0 for a in contravariant_indices for b in covariant_indices}
 
-    return Tensor(basis, new_type, new_tensor_dict)
+    return Tensor(basis, new_type, new_tensor_dict).simplify()
 
 def raise_index(tensor, metric, j):
     if isinstance(metric, Tensor):
@@ -486,7 +507,10 @@ def raise_index(tensor, metric, j):
             if value != 0:
                 new_tensor_dict[a, b] = value
 
-    return Tensor(basis, new_type, new_tensor_dict)
+    # if new_tensor_dict == {}:
+    #     new_tensor_dict = {(a, b): 0 for a in contravariant_indices for b in covariant_indices}
+
+    return Tensor(basis, new_type, new_tensor_dict).simplify()
 
 def _symmetry_completer(_dict):
     new_dict = _dict.copy()
@@ -531,16 +555,14 @@ def get_chrisoffel_symbols_from_metric(metric):
                 sumand += inverse_metric_matrix[r, c] * L
             if sumand != 0:
                 values[a, b] = (1/2) * sumand
-    return Tensor(basis, (1,2), values)
+    return Tensor(basis, (1,2), values).simplify()
 
 def get_Riemann_tensor(christoffel_symbols):
     cs = christoffel_symbols
-    ct_dimension = 1
-    c_dimension = 3
     basis = christoffel_symbols.basis
     dim = len(christoffel_symbols.basis)
-    contravariant_indices = get_all_multiindices(ct_dimension, dim)
-    covariant_indices = get_all_multiindices(c_dimension, dim)
+    contravariant_indices = get_all_multiindices(1, dim)
+    covariant_indices = get_all_multiindices(3, dim)
     values = {}
     for x in contravariant_indices:
         for y in covariant_indices:
@@ -551,20 +573,24 @@ def get_Riemann_tensor(christoffel_symbols):
                 sumand += cs[d, (a, u)]*cs[u, (c,b)] - cs[d, (b, u)]*cs[u, (c, a)]
             if sumand != 0:
                 values[x, y] = sumand
-    return Tensor(cs.basis, (1, 3), values)
+    return Tensor(cs.basis, (1, 3), values).simplify()
 
-def get_Ricci_tensor(christoffel_symbols):
-    Riem = get_Riemann_tensor(christoffel_symbols)
+def get_Ricci_tensor(christoffel_symbols, Riem=None):
+    if Riem == None:
+        Riem = get_Riemann_tensor(christoffel_symbols)
     return contract_indices(Riem, 0, 1)
 
-def get_scalar_curvature(christoffel_symbols, metric):
-    Temp = get_Ricci_tensor(christoffel_symbols)
-    Temp = raise_index(Temp, metric, 0)
+def get_scalar_curvature(christoffel_symbols, metric, Ric=None):
+    if Ric == None:
+        Ric = get_Ricci_tensor(christoffel_symbols)
+    Temp = raise_index(Ric, metric, 0)
     return contract_indices(Temp, 0, 0)
 
-def get_Einstein_tensor(christoffel_symbols, metric):
-    Ric = get_Ricci_tensor(christoffel_symbols)
-    R = get_scalar_curvature(christoffel_symbols, metric)
+def get_Einstein_tensor(christoffel_symbols, metric, Ric=None, R=None):
+    if Ric == None:
+        Ric = get_Ricci_tensor(christoffel_symbols)
+    if R == None:
+        R = get_scalar_curvature(christoffel_symbols, metric)
     g = metric
     return Ric + (-1/2)*R*g
 
@@ -576,6 +602,9 @@ class Spacetime:
         self.christoffel_symbols = get_chrisoffel_symbols_from_metric(_metric)
         '''
         To-do:
-            - Test Ricci and Riemann and friends.
             - Implement a simulation of Gödel's.
         '''
+        self.Riem = get_Riemann_tensor(self.christoffel_symbols)
+        self.Ric = get_Ricci_tensor(self.christoffel_symbols)
+        self.R = get_scalar_curvature(self.christoffel_symbols, self.metric)[(), ()]
+        self.G = get_Einstein_tensor(self.christoffel_symbols, self.metric)
