@@ -32,6 +32,19 @@ def is_multiindex(multiindex, n, c_dimension):
     else:
         return False
 
+def _get_matrix_of_basis_change(basis1, basis2, _dict, jacobian=True):
+    dim = len(basis1)
+    L = sympy.zeros(dim)
+    for i in range(dim):
+        for j in range(dim):
+            if jacobian == True:
+                L[i, j] = _dict[basis1[i]].diff(basis2[j])
+            if jacobian == False:
+                L[i,j] = _dict[basis1[j]].diff(basis2[i])
+    if L.det() == 0:
+        raise ValueError('The transformation is not invertible.')
+    return L
+
 def _is_valid_key(key, dim, ct_dim, c_dim):
     try:
         a, b = key
@@ -124,7 +137,6 @@ def _dict_completer_for_tensor(_dict, _type, dim):
     
     return _dict
 
-
 class Tensor:
     '''
     This class represents a tensor object in a given basis.
@@ -141,9 +153,19 @@ class Tensor:
         self.c_dim = _type[1]
         self.type = _type
         self.dim = len(self.basis)
-        self.values = _dict_completer_for_tensor(values, self.type, self.dim)
+        if values == 'zero':
+            self.values = {
+                (tuple(0 for i in range(self.ct_dim)), tuple(0 for i in range(self.c_dim))): 0
+            }
+        else:
+            self.values = _dict_completer_for_tensor(values, self.type, self.dim)
 
     def __eq__(self, other):
+        if other == 0:
+            if set(self.values.values()) == set([0]):
+                return True
+            else:
+                return False
         if not isinstance(other, Tensor):
             return False
         if self.basis == other.basis:
@@ -256,6 +278,8 @@ class Tensor:
         return (string + '$').replace('**', '^')
 
     def __add__(self, other):
+        if other == 0:
+            return Tensor(self.basis, self.type, self.values)
         if not isinstance(other, Tensor):
             raise ValueError('Cannot add a tensor with a {}'.format(type(other)))
         
@@ -324,7 +348,7 @@ class Tensor:
         # To-Do: reimplement simplify taking into account the possible 0 result.
         new_dict = {}
         for key, value in self.values.items():
-            new_dict[key] = value.simplify()
+            new_dict[key] = sympy.simplify(value)
         return Tensor(self.basis, self.type, new_dict)
 
     def get_all_values(self):
@@ -339,6 +363,31 @@ class Tensor:
                 else:
                     new_dict[a, b] = 0
         return new_dict
+
+    def change_basis(self, new_basis, basis_change, jacobian=True):
+        '''
+        This function returns a new tensor object in the new basis according
+        to the transormations stored in the dict basis_change.
+        '''
+        L = _get_matrix_of_basis_change(self.basis, new_basis, basis_change, jacobian)
+        contravariant_indices = get_all_multiindices(self.ct_dim, self.dim)
+        covariant_indices = get_all_multiindices(self.c_dim, self.dim)
+        new_tensor = Tensor(new_basis, self.type, 'zero')
+        for key in self.values:
+            c, d = key
+            for a in contravariant_indices:
+                for b in covariant_indices:
+                    m = self.values[key]
+                    for i in range(self.ct_dim):
+                        m *= L[a[i], c[i]]
+                    for j in range(self.c_dim):
+                        m *= (L.T)[b[j], d[j]]
+                    temp_tensor_values = {
+                        (a, b): m
+                    }
+                    temp_tensor = Tensor(new_basis, self.type, temp_tensor_values)
+                    new_tensor += temp_tensor
+        return new_tensor
 
     @classmethod
     def from_function(cls, basis, _type, func):

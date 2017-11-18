@@ -2,6 +2,7 @@ import generalrelativity as gr
 import sympy
 
 t, x, y, z = sympy.symbols('t x y z')
+e0, e1, e2, e3 = sympy.symbols('e_0 e_1 e_2 e_3')
 
 def test_return_value_tensor():
     dict_of_values = {
@@ -284,3 +285,40 @@ def test_scalar_curvature_godel():
 #     cs = gr.get_chrisoffel_symbols_from_metric(g)
 #     R = gr.get_scalar_curvature(cs, g)
 #     assert R[(), ()] == 0
+
+def test_change_basis1():
+    basis1 = [e0, e1, e2, e3]
+    v0, v1, v2, v3 = sympy.symbols('v_0 v_1 v_2 v_3')
+    basis2 = [v0, v1, v2, v3]
+    values = {
+        (0, ): 2,
+        (1, ): 3,
+        (2, ): 1
+    }
+    v = gr.Tensor(basis1, (1, 0), values)
+    basis_change = {
+        e0: v0 + v1,
+        e1: v1,
+        e2: v1 + v3,
+        e3: v2
+    }
+    v_new_basis = v.change_basis(basis2, basis_change, False)
+    print(v_new_basis)
+    assert v_new_basis[(0, )] == 2
+
+def test_change_basis2():
+    basis1 = [x, y]
+    r, theta = sympy.symbols('r \\theta')
+    basis2 = [r, theta]
+    values = {
+        (0, 0): 1,
+        (1, 1): 1
+    }
+    v = gr.Tensor(basis1, (0, 2), values)
+    basis_change = {
+        x: r*sympy.cos(theta),
+        y: r*sympy.sin(theta)
+    }
+    v_new_basis = v.change_basis(basis2, basis_change).simplify()
+    print(v_new_basis)
+    assert v_new_basis[(1, 1)] == r ** 2
