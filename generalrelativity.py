@@ -259,19 +259,19 @@ class Tensor:
             return '$0$'
         string = '$'
         for key in self.values:
-            string += '({})'.format(self.values[key])
+            string += '({})'.format(sympy.latex(self.values[key]))
             a, b = key
             if a != ():
                 substring_of_a = ''
                 for ind in a:
-                    substring_of_a += '{} \\otimes '.format(self.basis[ind])
+                    substring_of_a += '\\partial/\\partial {} \\otimes '.format(sympy.latex(self.basis[ind]))
                 substring_of_a = substring_of_a[:-len(' \\otimes ')]
                 string += substring_of_a
             if b != ():
                 if a != ():
                     string += ' \\otimes '
                 for ind in b:
-                    string += '{}^* \\otimes '.format(self.basis[ind])
+                    string += 'd{} \\otimes '.format(self.basis[ind])
                 string = string[:-len(' \\otimes ')]
             string += ' + '
         string = string[:-3]
@@ -364,12 +364,12 @@ class Tensor:
                     new_dict[a, b] = 0
         return new_dict
 
-    def change_basis(self, new_basis, basis_change, jacobian=True):
+    def change_basis(self, new_basis, basis_change):
         '''
         This function returns a new tensor object in the new basis according
         to the transormations stored in the dict basis_change.
         '''
-        L = _get_matrix_of_basis_change(self.basis, new_basis, basis_change, jacobian)
+        L = _get_matrix_of_basis_change(self.basis, new_basis, basis_change, False)
         contravariant_indices = get_all_multiindices(self.ct_dim, self.dim)
         covariant_indices = get_all_multiindices(self.c_dim, self.dim)
         new_tensor = Tensor(new_basis, self.type, 'zero')
@@ -386,6 +386,31 @@ class Tensor:
                         (a, b): m
                     }
                     temp_tensor = Tensor(new_basis, self.type, temp_tensor_values)
+                    new_tensor += temp_tensor
+        return new_tensor
+
+    def change_coordinates(self, new_coordinates, basis_change):
+        '''
+        This function returns a new tensor object in the new basis according
+        to the transormations stored in the dict basis_change.
+        '''
+        L = _get_matrix_of_basis_change(self.basis, new_coordinates, basis_change, True)
+        contravariant_indices = get_all_multiindices(self.ct_dim, self.dim)
+        covariant_indices = get_all_multiindices(self.c_dim, self.dim)
+        new_tensor = Tensor(new_coordinates, self.type, 'zero')
+        for key in self.values:
+            c, d = key
+            for a in contravariant_indices:
+                for b in covariant_indices:
+                    m = self.values[key]
+                    for i in range(self.ct_dim):
+                        m *= L[a[i], c[i]]
+                    for j in range(self.c_dim):
+                        m *= (L.T)[b[j], d[j]]
+                    temp_tensor_values = {
+                        (a, b): m
+                    }
+                    temp_tensor = Tensor(new_coordinates, self.type, temp_tensor_values)
                     new_tensor += temp_tensor
         return new_tensor
 

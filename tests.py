@@ -302,11 +302,11 @@ def test_change_basis1():
         e2: v1 + v3,
         e3: v2
     }
-    v_new_basis = v.change_basis(basis2, basis_change, False)
+    v_new_basis = v.change_basis(basis2, basis_change)
     print(v_new_basis)
     assert v_new_basis[(0, )] == 2
 
-def test_change_basis2():
+def test_change_coordinates1():
     basis1 = [x, y]
     r, theta = sympy.symbols('r \\theta')
     basis2 = [r, theta]
@@ -319,6 +319,6 @@ def test_change_basis2():
         x: r*sympy.cos(theta),
         y: r*sympy.sin(theta)
     }
-    v_new_basis = v.change_basis(basis2, basis_change).simplify()
+    v_new_basis = v.change_coordinates(basis2, basis_change).simplify()
     print(v_new_basis)
     assert v_new_basis[(1, 1)] == r ** 2
