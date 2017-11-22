@@ -321,7 +321,7 @@ class Tensor:
                 raise ValueError('Can\'t multiply a tensor with a tensor that isn\'t (0,0)')
             if other.basis != self.basis:
                 raise ValueError('The basis of {} should be the same as the other tensor'.format(other))
-                
+
             other_value = other[(), ()]
             new_dict = self.values.copy()
             for key in self.values:
@@ -335,7 +335,7 @@ class Tensor:
             return Tensor(self.basis, self.type, new_dict).simplify()
         except:
             raise ValueError('Can\'t multiply a tensor with {}'.format(other))
-    
+
     __rmul__ = __mul__
 
     def subs(self, list_of_substitutions):
@@ -534,7 +534,7 @@ def lower_index(tensor, metric, i):
                 value += metric[(), (b[0], r)]*tensor[a_extended, b_reduced]
             if value != 0:
                 new_tensor_dict[a, b] = value
-    
+
     # Fix: what if its the 0 tensor!
     # if new_tensor_dict == {}:
     #     new_tensor_dict = {(a, b): 0 for a in contravariant_indices for b in covariant_indices}
