@@ -673,12 +673,17 @@ class Spacetime:
         s, t, x, y, z = sympy.symbols('s t x y z')
         self.metric = _metric
         self.basis = _metric.basis
+        print('Computing Christoffel Symbols')
         self.christoffel_symbols = get_chrisoffel_symbols_from_metric(_metric)
         '''
         To-do:
             - Implement a simulation of Gödel's.
         '''
+        print('Computing Riemann tensor')
         self.Riem = get_Riemann_tensor(self.christoffel_symbols)
-        self.Ric = get_Ricci_tensor(self.christoffel_symbols)
-        self.R = get_scalar_curvature(self.christoffel_symbols, self.metric)[(), ()]
-        self.G = get_Einstein_tensor(self.christoffel_symbols, self.metric)
+        print('Computing Ricci tensor')
+        self.Ric = get_Ricci_tensor(self.christoffel_symbols, self.Riem)
+        print('Computing Scalar Curvature')
+        self.R = get_scalar_curvature(self.christoffel_symbols, self.metric, self.Ric)[(), ()]
+        print('Computing Einstein\'s tensor')
+        self.G = get_Einstein_tensor(self.christoffel_symbols, self.metric, self.Ric, self.R)
