@@ -351,6 +351,12 @@ class Tensor:
             new_dict[key] = sympy.simplify(value)
         return Tensor(self.basis, self.type, new_dict)
 
+    def evalf(self):
+        new_dict = {}
+        for key, value in self.values.items():
+            new_dict[key] = self.values[key].evalf()
+        return Tensor(self.basis, self.type, new_dict)
+
     def get_all_values(self):
         new_dict = {}
         dim = self.dim
