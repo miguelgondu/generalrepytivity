@@ -459,7 +459,7 @@ def get_matrix_from_tensor(tensor):
     for i in range(len(tensor.basis)):
         for j in range(len(tensor.basis)):
             matrix[i, j] = tensor[(), (i,j)]
-    
+
     return matrix
 
 def contract_indices(tensor, i, j):
@@ -675,21 +675,22 @@ def get_Einstein_tensor(christoffel_symbols, metric, Ric=None, R=None):
     return Ric + (-1/2)*R*g
 
 class Spacetime:
-    def __init__(self, _metric):
+    def __init__(self, _metric, printing_flag=False):
         s, t, x, y, z = sympy.symbols('s t x y z')
         self.metric = _metric
         self.basis = _metric.basis
-        print('Computing Christoffel Symbols')
+        if printing_flag:
+            print('Computing Christoffel Symbols')
         self.christoffel_symbols = get_chrisoffel_symbols_from_metric(_metric)
-        '''
-        To-do:
-            - Implement a simulation of Gödel's.
-        '''
-        print('Computing Riemann tensor')
+        if printing_flag:
+            print('Computing Riemann tensor')
         self.Riem = get_Riemann_tensor(self.christoffel_symbols)
-        print('Computing Ricci tensor')
+        if printing_flag:
+            print('Computing Ricci tensor')
         self.Ric = get_Ricci_tensor(self.christoffel_symbols, self.Riem)
-        print('Computing Scalar Curvature')
+        if printing_flag:
+            print('Computing Scalar Curvature')
         self.R = get_scalar_curvature(self.christoffel_symbols, self.metric, self.Ric)[(), ()]
-        print('Computing Einstein\'s tensor')
+        if printing_flag:
+            print('Computing Einstein\'s tensor')
         self.G = get_Einstein_tensor(self.christoffel_symbols, self.metric, self.Ric, self.R)

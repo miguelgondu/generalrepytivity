@@ -3,7 +3,7 @@ notebooks/
 general_tester.py
 tex_documents/
 Tutorial.ipynb
-
+*.mp4
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
