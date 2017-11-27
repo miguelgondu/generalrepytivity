@@ -694,3 +694,36 @@ class Spacetime:
         if printing_flag:
             print('Computing Einstein\'s tensor')
         self.G = get_Einstein_tensor(self.christoffel_symbols, self.metric, self.Ric, self.R)
+    
+    def print_summary(self):
+        print('Christoffel symbols: ')
+        for key, value in self.christoffel_symbols.values.items():
+            a, b = key
+            string = '$\\Gamma^'
+            string += str(a[0])
+            string += '_{'
+            string += str(b[0]) + str(b[1]) + '} = ' + sympy.latex(value)
+            string += '$'
+            print(string)
+        
+        print('Riemman tensor: ')
+        for key, value in self.Riem.values.items():
+            a, b = key
+            string = 'Riem$^'
+            string += str(a[0])
+            string += '_{'
+            string += str(b[0]) + str(b[1]) + str(b[2]) + '} = ' + sympy.latex(value)
+            string += '$'
+            print(string)
+        
+        print('Ricci tensor: ')
+        for key, value in self.Ric.values.items():
+            a, b = key
+            string = 'Ric$'
+            string += '_{'
+            string += str(b[0]) + str(b[1]) + '} = ' + sympy.latex(value)
+            string += '$'
+            print(string)
+
+        print('Scalar curvature: ')
+        print(sympy.latex(self.R))
