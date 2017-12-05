@@ -548,6 +548,9 @@ def lower_index(tensor, metric, i):
     return Tensor(basis, new_type, new_tensor_dict).simplify()
 
 def raise_index(tensor, metric, j):
+    '''
+    
+    '''
     if isinstance(metric, Tensor):
         if metric.basis != tensor.basis:
             raise ValueError('Tensor and Metric should be on the same basis.')
