@@ -134,7 +134,7 @@ def _dict_completer_for_tensor(_dict, _type, dim):
     for key in _dict:
         if not _is_valid_key(key, dim, ct_dim, c_dim):
             raise ValueError('Key {} is not compatible with the dimensions')
-    
+
     return _dict
 
 class Tensor:
@@ -497,9 +497,6 @@ def contract_indices(tensor, i, j):
                 sumand += tensor[a_extended, b_extended]
             if sumand != 0:
                 new_tensor_dict[a, b] = sumand
-    
-    # if new_tensor_dict == {}:
-    #     new_tensor_dict = {(a, b): 0 for a in contravariant_indices for b in covariant_indices}
 
     return Tensor(tensor.basis, (ct_dim - 1, c_dim - 1), new_tensor_dict).simplify()
 
@@ -540,10 +537,6 @@ def lower_index(tensor, metric, i):
                 value += metric[(), (b[0], r)]*tensor[a_extended, b_reduced]
             if value != 0:
                 new_tensor_dict[a, b] = value
-
-    # Fix: what if its the 0 tensor!
-    # if new_tensor_dict == {}:
-    #     new_tensor_dict = {(a, b): 0 for a in contravariant_indices for b in covariant_indices}
 
     return Tensor(basis, new_type, new_tensor_dict).simplify()
 
