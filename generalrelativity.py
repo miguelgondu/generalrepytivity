@@ -670,6 +670,65 @@ def get_Einstein_tensor(christoffel_symbols, metric, Ric=None, R=None):
     g = metric
     return Ric + (-1/2)*R*g
 
+def _get_preimage(_dict, value):
+    list_of_preimages = [key for (key, _value) in _dict.items() if _value == value]
+    return list_of_preimages
+
+def _get_list_of_lines(tensor, symbol):
+    list_of_lines = []
+    for value in set(tensor.values.values()):
+        if value != 0:
+            list_of_preimages = _get_preimage(tensor.values, value)
+            line = '$'
+            for preimage in list_of_preimages:
+                a, b = preimage
+                line += symbol + '^{'
+                for i in a:
+                    line += str(i)
+                line += '}_{'
+                for j in b:
+                    line += str(j)
+                line += '} = '
+            line += sympy.latex(value)
+            line += '$\n'
+            list_of_lines.append(line)
+    
+    # Last line, the one about the zeros
+    if list_of_lines != []:
+        line = '$' + symbol + '^{'
+        for k in range(tensor.ct_dim):
+            line += 'a_{' + str(k) + '}'
+        line += '}_{'
+        for k in range(tensor.c_dim):
+            line += 'b_{' + str(k) + '}'
+        line += '} = 0$ in other case\n'
+        list_of_lines.append(line)
+    if list_of_lines == []:
+        line = '$' + symbol + '^{'
+        for k in range(tensor.ct_dim):
+            line += 'a_{' + str(k) + '}'
+        line += '}_{'
+        for k in range(tensor.c_dim):
+            line += 'b_{' + str(k) + '}'
+        line += '} = 0$ in every case\n'
+        list_of_lines.append(line)
+
+    return list_of_lines
+
+def print_in_file(file_name, tensor, symbol, append_flag=False):
+    if not append_flag:
+        try:
+            _file = open(file_name, 'x')
+        except:
+            _file = open(file_name, 'w')
+    if append_flag:
+        _file = open(file_name, 'a')
+
+    list_of_lines = _get_list_of_lines(tensor, symbol)
+
+    _file.writelines(list_of_lines)
+    _file.close()
+
 class Spacetime:
     def __init__(self, _metric, printing_flag=False):
         s, t, x, y, z = sympy.symbols('s t x y z')
@@ -691,35 +750,37 @@ class Spacetime:
             print('Computing Einstein\'s tensor')
         self.G = get_Einstein_tensor(self.christoffel_symbols, self.metric, self.Ric, self.R)
     
-    def print_summary(self):
-        print('Christoffel symbols: ')
-        for key, value in self.christoffel_symbols.values.items():
-            a, b = key
-            string = '$\\Gamma^'
-            string += str(a[0])
-            string += '_{'
-            string += str(b[0]) + str(b[1]) + '} = ' + sympy.latex(value)
-            string += '$'
-            print(string)
-        
-        print('Riemman tensor: ')
-        for key, value in self.Riem.values.items():
-            a, b = key
-            string = 'Riem$^'
-            string += str(a[0])
-            string += '_{'
-            string += str(b[0]) + str(b[1]) + str(b[2]) + '} = ' + sympy.latex(value)
-            string += '$'
-            print(string)
-        
-        print('Ricci tensor: ')
-        for key, value in self.Ric.values.items():
-            a, b = key
-            string = 'Ric$'
-            string += '_{'
-            string += str(b[0]) + str(b[1]) + '} = ' + sympy.latex(value)
-            string += '$'
-            print(string)
+    def print_summary(self, file_name='Spacetime.txt'):
+        try:
+            _file = open(file_name, 'x')
+        except:
+            _file = open(file_name, 'w')
+        complete_list_of_lines = []
 
-        print('Scalar curvature: ')
-        print(sympy.latex(self.R))
+        #Metric
+        complete_list_of_lines.append('Metric:\n')
+        complete_list_of_lines += _get_list_of_lines(self.metric, 'g')
+        complete_list_of_lines.append('\n')
+
+        #Christoffel Symbols
+        complete_list_of_lines.append('Christoffel Symbols:\n')
+        complete_list_of_lines += _get_list_of_lines(self.christoffel_symbols, '\Gamma')
+        complete_list_of_lines.append('\n')
+
+        #Riemann Tensor
+        complete_list_of_lines.append('Riemman tensor:\n')
+        complete_list_of_lines += _get_list_of_lines(self.Riem, '\mbox{' + 'Riem' + '}')
+        complete_list_of_lines.append('\n')
+
+        #Ricci Tensor
+        complete_list_of_lines.append('Ricci tensor:\n')
+        complete_list_of_lines += _get_list_of_lines(self.Ric, '\mbox{' + 'Ric' + '}')
+        complete_list_of_lines.append('\n')
+
+        #Scalar curvature
+        complete_list_of_lines.append('Scalar curvature:\n')
+        complete_list_of_lines += _get_list_of_lines(self.Ric, '\mbox{' + 'R' + '}')
+        complete_list_of_lines.append('\n')
+
+        _file.writelines(complete_list_of_lines)
+        _file.close()
