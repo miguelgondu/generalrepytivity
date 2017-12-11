@@ -676,43 +676,45 @@ def _get_preimage(_dict, value):
 
 def _get_list_of_lines(tensor, symbol):
     list_of_lines = []
-    for value in set(tensor.values.values()):
-        if value != 0:
-            list_of_preimages = _get_preimage(tensor.values, value)
-            line = '$'
-            for preimage in list_of_preimages:
-                a, b = preimage
-                line += symbol + '^{'
-                for i in a:
-                    line += str(i)
-                line += '}_{'
-                for j in b:
-                    line += str(j)
-                line += '} = '
-            line += sympy.latex(value)
-            line += '$\n'
+    if isinstance(tensor, Tensor):
+        for value in set(tensor.values.values()):
+            if value != 0:
+                list_of_preimages = _get_preimage(tensor.values, value)
+                line = '$$'
+                for preimage in list_of_preimages:
+                    a, b = preimage
+                    line += symbol + '^{'
+                    for i in a:
+                        line += str(i)
+                    line += '}_{'
+                    for j in b:
+                        line += str(j)
+                    line += '} = '
+                line += sympy.latex(value)
+                line += '$$\n'
+                list_of_lines.append(line)
+        
+        # Last line, the one about the zeros
+        if list_of_lines != []:
+            line = '$$' + symbol + '^{'
+            for k in range(tensor.ct_dim):
+                line += 'a_{' + str(k) + '}'
+            line += '}_{'
+            for k in range(tensor.c_dim):
+                line += 'b_{' + str(k) + '}'
+            line += '} = 0 \mbox{ in any other case' + '}$$\n'
             list_of_lines.append(line)
-    
-    # Last line, the one about the zeros
-    if list_of_lines != []:
-        line = '$' + symbol + '^{'
-        for k in range(tensor.ct_dim):
-            line += 'a_{' + str(k) + '}'
-        line += '}_{'
-        for k in range(tensor.c_dim):
-            line += 'b_{' + str(k) + '}'
-        line += '} = 0$ in other case\n'
-        list_of_lines.append(line)
-    if list_of_lines == []:
-        line = '$' + symbol + '^{'
-        for k in range(tensor.ct_dim):
-            line += 'a_{' + str(k) + '}'
-        line += '}_{'
-        for k in range(tensor.c_dim):
-            line += 'b_{' + str(k) + '}'
-        line += '} = 0$ in every case\n'
-        list_of_lines.append(line)
-
+        if list_of_lines == []:
+            line = '$$' + symbol + '^{'
+            for k in range(tensor.ct_dim):
+                line += 'a_{' + str(k) + '}'
+            line += '}_{'
+            for k in range(tensor.c_dim):
+                line += 'b_{' + str(k) + '}'
+            line += '} = 0 \mbox{ in every case' + '}$$\n'
+            list_of_lines.append(line)
+    else:
+        list_of_lines.append('$$' + symbol + ' = ' + str(tensor) + '$$')
     return list_of_lines
 
 def print_in_file(file_name, tensor, symbol, append_flag=False):
@@ -779,7 +781,7 @@ class Spacetime:
 
         #Scalar curvature
         complete_list_of_lines.append('Scalar curvature:\n')
-        complete_list_of_lines += _get_list_of_lines(self.Ric, '\mbox{' + 'R' + '}')
+        complete_list_of_lines += _get_list_of_lines(self.R, '\mbox{' + 'R' + '}')
         complete_list_of_lines.append('\n')
 
         _file.writelines(complete_list_of_lines)
