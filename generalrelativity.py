@@ -717,7 +717,7 @@ def _get_list_of_lines(tensor, symbol):
         list_of_lines.append('$$' + symbol + ' = ' + str(tensor) + '$$')
     return list_of_lines
 
-def print_in_file(file_name, tensor, symbol, append_flag=False):
+def print_in_file(file_name, tensor, symbol, append_flag=False, _format='txt'):
     if not append_flag:
         try:
             _file = open(file_name, 'x')
@@ -728,8 +728,27 @@ def print_in_file(file_name, tensor, symbol, append_flag=False):
 
     list_of_lines = _get_list_of_lines(tensor, symbol)
 
-    _file.writelines(list_of_lines)
-    _file.close()
+    if _format == 'txt':
+        _file.writelines(list_of_lines)
+        _file.close()
+    elif _format == 'tex':
+        complete_list_of_lines = []
+        complete_list_of_lines.append('\\documentclass{article' + '}\n')
+        complete_list_of_lines.append('\\usepackage[utf8]{inputenc' + '}\n')
+        complete_list_of_lines.append('\\usepackage[T1]{fontenc' + '}\n')
+        complete_list_of_lines.append('\\usepackage[english]{babel' + '}\n')
+        complete_list_of_lines.append('\\usepackage{amsmath' + '}\n')
+        complete_list_of_lines.append('\\usepackage{amssymb' + '}\n')
+        complete_list_of_lines.append('\n')
+        complete_list_of_lines.append('\\begin{document' + '}\n')
+        complete_list_of_lines.append('\n')
+        complete_list_of_lines += list_of_lines
+        complete_list_of_lines.append('\n')
+        complete_list_of_lines.append('\\end{document' + '}\n')
+        _file.writelines(complete_list_of_lines)
+        _file.close()
+    else:
+        raise ValueError('Expected txt or tex for format, but got {}'.format(_format))
 
 class Spacetime:
     def __init__(self, _metric, printing_flag=False):
@@ -752,7 +771,7 @@ class Spacetime:
             print('Computing Einstein\'s tensor')
         self.G = get_Einstein_tensor(self.christoffel_symbols, self.metric, self.Ric, self.R)
     
-    def print_summary(self, file_name='Spacetime.txt'):
+    def print_summary(self, file_name='Spacetime.txt', _format='txt'):
         try:
             _file = open(file_name, 'x')
         except:
@@ -784,5 +803,24 @@ class Spacetime:
         complete_list_of_lines += _get_list_of_lines(self.R, '\mbox{' + 'R' + '}')
         complete_list_of_lines.append('\n')
 
-        _file.writelines(complete_list_of_lines)
-        _file.close()
+        if _format == 'txt':
+            _file.writelines(complete_list_of_lines)
+            _file.close()
+        elif _format == 'tex':
+            final_list_of_lines = []
+            final_list_of_lines.append('\\documentclass{article' + '}\n')
+            final_list_of_lines.append('\\usepackage[utf8]{inputenc' + '}\n')
+            final_list_of_lines.append('\\usepackage[T1]{fontenc' + '}\n')
+            final_list_of_lines.append('\\usepackage[english]{babel' + '}\n')
+            final_list_of_lines.append('\\usepackage{amsmath' + '}\n')
+            final_list_of_lines.append('\\usepackage{amssymb' + '}\n')
+            final_list_of_lines.append('\n')
+            final_list_of_lines.append('\\begin{document' + '}\n')
+            final_list_of_lines.append('\n')
+            final_list_of_lines += complete_list_of_lines
+            final_list_of_lines.append('\n')
+            final_list_of_lines.append('\\end{document' + '}\n')
+            _file.writelines(final_list_of_lines)
+            _file.close()
+        else:
+            raise ValueError('Expected txt or tex for format, but got {}'.format(_format))
