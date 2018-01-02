@@ -226,12 +226,14 @@ def test_subs_in_tensor1():
     dict_of_values = {
         ((1, ), (0, )): s**2,
         ((1, ), (1, )): s**3,
+        ((0, ), (1, )): 4
     }
     basis = [t, x, y, z]
     tensor_1 = gr.Tensor(basis, _type, dict_of_values)
     dict_of_values2 = {
         ((1, ), (0, )): 9,
-        ((1, ), (1, )): 27
+        ((1, ), (1, )): 27,
+        ((0, ), (1, )): 4
     }
     tensor_2 = gr.Tensor(basis, _type, dict_of_values2)
     assert tensor_2 == tensor_1.subs([(s, 3)])

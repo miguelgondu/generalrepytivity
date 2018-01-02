@@ -15,7 +15,7 @@ def is_multiindex(multiindex, n, c_dimension):
     This function determines if a tuple is a multiindex or not
     according to these rules:
     1. () is a multiindex of length 0 (i.e. if the covariant or contravariant dimension
-    is 0, the empty tuple is the only multiindex)
+    is 0, the empty tuple is the only 0-multiindex)
     2. The length of a multiindex must be equal to the c_dimension
     3. Each value in the multiindex varies between 0 and n-1.
     '''
@@ -33,6 +33,33 @@ def is_multiindex(multiindex, n, c_dimension):
         return False
 
 def _get_matrix_of_basis_change(basis1, basis2, _dict, jacobian=True):
+    '''
+    This is an internal function. It is used in the change_basis method
+    for tensor objects. It computes the matrix that represents the 
+    identity function from (V, basis1) to (V, basis2). It does so
+    using derivatives.
+
+    For example, for the variables
+
+    basis1 = [e0, e1, e2, e3]
+    basis2 = [f0, f1, f2, f3]
+    _dict = {
+        e0: f0 + f1,
+        e1: f1,
+        e2: f1 + f3,
+        e3: f2
+    }
+
+    the resulting matrix would be
+    [[1, 1, 0, 0],
+     [0, 1, 0, 0],
+     [0, 1, 0, 1],
+     [0, 0, 1, 0]]
+
+    if the jacobian keyword is set to True, and its transpose if
+    it is false.
+    '''
+
     dim = len(basis1)
     L = sympy.zeros(dim)
     for i in range(dim):
@@ -46,21 +73,29 @@ def _get_matrix_of_basis_change(basis1, basis2, _dict, jacobian=True):
     return L
 
 def _is_valid_key(key, dim, ct_dim, c_dim):
-    try:
-        a, b = key
-        if not is_multiindex(a, dim, ct_dim):
-            raise ValueError('The multiindex {} is inconsistent with dimension {}'.format(a, ct_dim))
-        if not is_multiindex(b, dim, c_dim):
-            raise ValueError('The multiindex {} is inconsistent with dimensions {}'.format(b, c_dim))
-        return True
-    except ValueError:
+    '''
+    This is an internal function, it checks whether a given key (i.e. a pair
+    of multiindices) is a valid key for certain dimension dim, contravariant dimension
+    ct_dim and covariant dimension c_dim. It does so using the is_multiindex function.
+    '''
+    if len(key) != 2:
         return False
+    a, b = key
+    if not is_multiindex(a, dim, ct_dim):
+        return False
+    if not is_multiindex(b, dim, c_dim):
+        return False
+
+    return True
 
 def _dict_completer_for_tensor(_dict, _type, dim):
     '''
     This function checks that the _dict is in proper form and completes in certain cases.
-    It returns a completed version of the _dict if it indeed needs completion, else it 
-    returns the same _dict.
+    Those cases are:
+        - If one of the dimensions is 0, it is allowed to put only one multiindex instead
+          of a pair.
+        - if one of the dimensions is 1, it is allowd to put an integer instead of a 
+          1-multiindex.
     '''
     ct_dim = _type[0]
     c_dim = _type[1]
@@ -141,11 +176,14 @@ class Tensor:
     '''
     This class represents a tensor object in a given basis.
 
-    To construct a (p,q)-Tensor, one must pass two arguments:
-    1. _type: a pair of values p (the contravariant dimension) and q (the covariant dimension).
-    2. the non-zero values, which is a dict whose keys are pairs of the form (a, b)
-    where a and b are multi-indices such that $\Gamma^a_b = value$, the values that
-    don't appear in this dict are assumed to be 0.
+    To construct a (p,q)-Tensor, one must pass three arguments:
+    1. basis: a list of sympy symbols which represent the coordinates (or
+       basis of tangent space).
+    1. _type: a pair of values p (the contravariant dimension) and q (the
+      covariant dimension).
+    2. the non-zero values, which is a dict whose keys are pairs of the
+    form (a, b) where a and b are multi-indices such that $\Gamma^a_b = value$,
+    the values that don't appear in this dict are assumed to be 0.
     '''
     def __init__(self, basis, _type, values):
         self.basis = basis
@@ -341,23 +379,37 @@ class Tensor:
     def subs(self, list_of_substitutions):
         new_dict = {}
         for key, value in self.values.items():
-            new_dict[key] = value.subs(list_of_substitutions)
+            new_dict[key] = sympy.simplify(value).subs(list_of_substitutions)
         return Tensor(self.basis, self.type, new_dict).simplify()
 
     def simplify(self):
-        # To-Do: reimplement simplify taking into account the possible 0 result.
+        '''
+        This function simplifies (using sympy.simplify) every value in 
+        the tensors dict.
+
+        For example:
+        '''
         new_dict = {}
         for key, value in self.values.items():
             new_dict[key] = sympy.simplify(value)
+        if Tensor == 0:
+            return Tensor(self.basis, self.type, 'zero')
         return Tensor(self.basis, self.type, new_dict)
 
     def evalf(self):
+        '''
+        This function evaluates to floats every value in the tensors dict.
+        '''
         new_dict = {}
         for key, value in self.values.items():
-            new_dict[key] = self.values[key].evalf()
+            new_dict[key] = sympy.simplify(self.values[key]).evalf()
         return Tensor(self.basis, self.type, new_dict)
 
     def get_all_values(self):
+        '''
+        This function returns a non-sparse values dict of the tensor (i.e.
+        it fills all the missing zero values).
+        '''
         new_dict = {}
         dim = self.dim
         contravariant_multiindices = get_all_multiindices(self.ct_dim, dim)
@@ -395,12 +447,12 @@ class Tensor:
                     new_tensor += temp_tensor
         return new_tensor
 
-    def change_coordinates(self, new_coordinates, basis_change):
+    def change_coordinates(self, new_coordinates, coord_change):
         '''
         This function returns a new tensor object in the new basis according
-        to the transormations stored in the dict basis_change.
+        to the transormations stored in the dict coord_change.
         '''
-        L = _get_matrix_of_basis_change(self.basis, new_coordinates, basis_change, True)
+        L = _get_matrix_of_basis_change(self.basis, new_coordinates, coord_change, True)
         contravariant_indices = get_all_multiindices(self.ct_dim, self.dim)
         covariant_indices = get_all_multiindices(self.c_dim, self.dim)
         new_tensor = Tensor(new_coordinates, self.type, 'zero')
