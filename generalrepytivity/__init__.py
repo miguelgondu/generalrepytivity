@@ -7,8 +7,8 @@ __email__ = 'miguelgondu@gmail.com'
 __version__ = '0.1.0'
 
 
-import sympy
 import itertools
+import sympy
 
 def get_all_multiindices(p, n):
     '''
@@ -186,7 +186,7 @@ class Tensor:
     This class represents a tensor object in some given coordinates.
 
     To construct a (p,q)-Tensor, one must pass three arguments:
-    1. basis: a list of sympy symbols which represent the coordinates (or
+    1. coordinates (a.k.a. basis): a list of sympy symbols which represent the coordinates (or
        basis of tangent space).
     2. _type: a pair of values p (the contravariant dimension) and q (the
       covariant dimension).
@@ -199,17 +199,22 @@ class Tensor:
     import sympy
 
     t, x, y, z = sympy.symbols('t x y z')
-    basis = [t, x, y, z]
+    coordinates = [t, x, y, z]
     _type = (2, 1)
     values = {
         ((1,1), (0, )): 5,
         ((0,1), (0, )): -3,
         ((1,0), (2, )): t**2,
     }
-    tensor = gr.Tensor(basis, _type, dict_of_values)
+    tensor = gr.Tensor(coordinates, _type, dict_of_values)
     '''
-    def __init__(self, basis, _type, values):
-        self.basis = basis
+    def __init__(self, coordinates, _type, values):
+        '''
+        For some quirk, the name that's mostly used internally is basis (instead
+        of coordinates).
+        '''
+        self.coordinates = coordinates
+        self.basis = coordinates
         self.ct_dim = _type[0]
         self.c_dim = _type[1]
         self.type = _type
