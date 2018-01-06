@@ -76,7 +76,7 @@ def _get_matrix_of_basis_change(basis1, basis2, _dict, jacobian=True):
             if jacobian == True:
                 L[i, j] = _dict[basis1[i]].diff(basis2[j])
             if jacobian == False:
-                L[i,j] = _dict[basis1[j]].diff(basis2[i])
+                L[i, j] = _dict[basis1[j]].diff(basis2[i])
     if L.det() == 0:
         raise ValueError('The transformation is not invertible.')
     return L
@@ -126,7 +126,7 @@ def _dict_completer_for_tensor(_dict, _type, dim):
             elif is_multiindex(key, dim, ct_dim):
                 new_dict[(key, ())] = _dict[key]
             else:
-                raise ValueError('Can\'t extend the key {} because it isn\'t a {}-multiindex'.format(
+                raise ValueError('Can\'t extend key {} because it isn\'t a {}-multiindex'.format(
                     key, ct_dim))
         return new_dict
 
@@ -139,7 +139,7 @@ def _dict_completer_for_tensor(_dict, _type, dim):
             elif is_multiindex(key, dim, c_dim):
                 new_dict[((), key)] = _dict[key]
             else:
-                raise ValueError('Can\'t extend the key {} because it isn\'t a {}-multiindex'.format(
+                raise ValueError('Can\'t extend key {} because it isn\'t a {}-multiindex'.format(
                     key, c_dim))
         return new_dict
 
@@ -155,7 +155,7 @@ def _dict_completer_for_tensor(_dict, _type, dim):
                     new_dict[(i, ), b] = _dict[key]
                 else:
                     raise ValueError('{} should be an integer and {} should be a {}-multiindex (or int in case 1).'.format(
-                                                                            i, b, c_dim))
+                        i, b, c_dim))
             else:
                 raise ValueError('There should only be two things in {}'.format(key))
         return new_dict
@@ -172,7 +172,7 @@ def _dict_completer_for_tensor(_dict, _type, dim):
                     new_dict[a, (j, )] = _dict[key]
                 else:
                     raise ValueError('{} should be an integer and {} should be a {}-multiindex (or int in case 1).'.format(
-                                                                                                j, a, ct_dim))
+                        j, a, ct_dim))
         return new_dict
 
     for key in _dict:
@@ -191,7 +191,7 @@ class Tensor:
     2. _type: a pair of values p (the contravariant dimension) and q (the
       covariant dimension).
     3. the non-zero values, which is a dict whose keys are pairs of the
-    form (a, b) where a and b are multi-indices such that $\Gamma^a_b = value$,
+    form (a, b) where a and b are multi-indices such that $\\Gamma^a_b = value$,
     the values that don't appear in this dict are assumed to be 0.
 
     For example:
@@ -259,19 +259,21 @@ class Tensor:
                     else:
                         return sympy.simplify(0)
             else:
-                raise KeyError('There should be two things in {}, but there are {}'.format(pair, len(pair)))
+                raise KeyError('There should be two things in {}, but there are {}'.format(
+                    pair, len(pair)))
 
         a, b = pair
         if isinstance(a, int):
             if isinstance(b, int):
                 if (is_multiindex((a, ), self.dim, self.ct_dim) and
-                    is_multiindex((b, ), self.dim, self.c_dim)):
+                        is_multiindex((b, ), self.dim, self.c_dim)):
                     if ((a, ), (b, )) in self.values:
                         return sympy.simplify(self.values[((a, ), (b, ))])
                     else:
                         return sympy.simplify(0)
                 else:
-                    raise KeyError('There\'s a problem with the multiindices ({}, ) and ({}, )'.format(a, b))
+                    raise KeyError('There\'s a problem with multiindices ({},) and ({},)'.format(
+                        a, b))
             if is_multiindex(b, self.dim, self.c_dim):
                 if ((a, ), b) in self.values:
                     return sympy.simplify(self.values[((a, ), b)])
@@ -290,7 +292,8 @@ class Tensor:
                     return sympy.simplify(self.values[(a, b)])
                 else:
                     return sympy.simplify(0)
-        raise KeyError('There\'s something wrong with the pair of multiindices {} and {}'.format(a, b))
+        raise KeyError('There\'s something wrong with the pair of multiindices {} and {}'.format(
+            a, b))
 
     def __repr__(self):
         if set(self.values.values()) == set([0]):
@@ -325,7 +328,8 @@ class Tensor:
             if a != ():
                 substring_of_a = ''
                 for ind in a:
-                    substring_of_a += '\\partial/\\partial {} \\otimes '.format(sympy.latex(self.basis[ind]))
+                    substring_of_a += '\\partial/\\partial {} \\otimes '.format(
+                        sympy.latex(self.basis[ind]))
                 substring_of_a = substring_of_a[:-len(' \\otimes ')]
                 string += substring_of_a
             if b != ():
@@ -363,25 +367,27 @@ class Tensor:
         return Tensor(result_basis, result_type, result_dict).simplify()
 
     def __mul__(self, other):
-        if self.type == (0,0):
+        if self.type == (0, 0):
             if isinstance(other, Tensor):
                 if other.basis != self.basis:
-                    raise ValueError('The basis of {} should be the same as the other tensor'.format(other))
+                    raise ValueError('Basis of {} should be the same as other tensor\'s'.format(
+                        other))
                 new_dict = other.values.copy()
                 for key in other.values:
                     new_dict[key] = new_dict[key] * self.values[((), ())]
                 return Tensor(self.basis, other.type, new_dict).simplify()
-        if (isinstance(other, int) or isinstance(other, float)):
+        if isinstance(other, int) or isinstance(other, float):
             new_dict = self.values.copy()
             for key in self.values:
                 new_dict[key] = self.values[key] * other
             return Tensor(self.basis, self.type, new_dict).simplify()
 
         if isinstance(other, Tensor):
-            if other.type != (0,0):
-                raise ValueError('Can\'t multiply a tensor with a tensor that isn\'t (0,0)')
+            if other.type != (0, 0):
+                raise ValueError('Can\'t multiply a tensor with a tensor that isn\'t (0, 0)')
             if other.basis != self.basis:
-                raise ValueError('The basis of {} should be the same as the other tensor'.format(other))
+                raise ValueError('The basis of {} should be the same as the other tensor'.format(
+                    other))
 
             other_value = other[(), ()]
             new_dict = self.values.copy()
@@ -442,7 +448,7 @@ class Tensor:
         covariant_multiindices = get_all_multiindices(self.c_dim, dim)
         for a in contravariant_multiindices:
             for b in covariant_multiindices:
-                if (a,b) in self.values:
+                if (a, b) in self.values:
                     new_dict[a, b] = self.values[a, b]
                 else:
                     new_dict[a, b] = 0
@@ -530,7 +536,7 @@ class Tensor:
     @classmethod
     def from_function(cls, basis, _type, func):
         '''
-        This method allows you to create a tensor from a function. 
+        This method allows you to create a tensor from a function.
         The function func must take 2 multiindices and turn them
         into a value.
 
@@ -546,7 +552,7 @@ class Tensor:
         ct_indices = get_all_multiindices(ct_dim, dim)
         c_indices = get_all_multiindices(c_dim, dim)
         values = {
-            (a,b): func(a,b) for a in ct_indices for b in c_indices if func(a,b) != 0
+            (a, b): func(a, b) for a in ct_indices for b in c_indices if func(a, b) != 0
         }
         return cls(basis, _type, values)
 
@@ -567,7 +573,7 @@ def get_tensor_from_matrix(matrix, basis):
     for i in range(len(matrix.tolist())):
         for j in range(len(matrix.tolist())):
             if matrix[i, j] != 0:
-                values[(), (i,j)] = matrix[i, j]
+                values[(), (i, j)] = matrix[i, j]
     return Tensor(basis, (0, 2), values).simplify()
 
 def get_matrix_from_tensor(tensor):
@@ -584,7 +590,7 @@ def get_matrix_from_tensor(tensor):
     matrix = sympy.zeros(len(tensor.basis))
     for i in range(len(tensor.basis)):
         for j in range(len(tensor.basis)):
-            matrix[i, j] = tensor[(), (i,j)]
+            matrix[i, j] = tensor[(), (i, j)]
 
     return matrix
 
@@ -608,13 +614,11 @@ def contract_indices(tensor, i, j):
     c_dim = tensor.c_dim
     ct_dim = tensor.ct_dim
     if c_dim < 1 or ct_dim < 1:
-        raise ValueError('One of the dimensions in the type {} is less than one.'.format(tensor.type))
+        raise ValueError('One dimension in the type {} is less than one.'.format(tensor.type))
     if i < 0 or i >= ct_dim:
-        raise ValueError('{} is either negative or bigger than the contravariant dimension minus one {}'.format(i,
-                                                                                    ct_dim-1))
+        raise ValueError('{} is an invalid index to be contracted'.format(i, ct_dim-1))
     if j < 0 or j >= c_dim:
-        raise ValueError('{} is either negative or bigger than the covariant dimension minus one {}'.format(j,
-                                                                                    c_dim-1))
+        raise ValueError('{} is an invalid index to be contracted'.format(j, c_dim-1))
 
     contravariant_indices = get_all_multiindices(ct_dim-1, dim)
     covariant_indices = get_all_multiindices(c_dim-1, dim)
@@ -643,7 +647,7 @@ def lower_index(tensor, metric, i):
 
     Its arguments:
     - tensor: any (p,q)-tensor, with p >= 1.
-    - metric: a (0,2)-tensor which represents a non-degenerate symmetric 
+    - metric: a (0,2)-tensor which represents a non-degenerate symmetric
       bilinear function.
     - i: an integer which represents the position of the superindex to
       be lowered (indexing in 0).
@@ -654,7 +658,7 @@ def lower_index(tensor, metric, i):
     if isinstance(metric, Tensor):
         if metric.basis != tensor.basis:
             raise ValueError('Tensor and Metric should be on the same basis.')
-        if metric.type != (0,2):
+        if metric.type != (0, 2):
             raise ValueError('metric should be a (0,2)-tensor')
     else:
         raise ValueError('metric should be a (0,2)-tensor')
@@ -717,7 +721,7 @@ def raise_index(tensor, metric, j):
 
     if j < 0 or j >= tensor.c_dim:
         raise ValueError('The index to be raised ({}) must be between 0 and {}'.format(j,
-                                                                        tensor.c_dim))
+            tensor.c_dim))
 
     basis = tensor.basis
     dim = len(basis)
@@ -754,7 +758,8 @@ def _symmetry_completer(_dict):
         inverted_b = (b[1], b[0])
         if (a, inverted_b) in new_dict:
             if new_dict[a, b] != new_dict[a, inverted_b]:
-                raise ValueError('Inconsistent values for pairs {} and {} of subindices'.format(b, inverted_b))
+                raise ValueError('Inconsistent values for pairs {} and {} of subindices'.format(
+                    b, inverted_b))
         if (a, inverted_b) not in new_dict:
             new_dict[a, inverted_b] = new_dict[a, b]
     return new_dict
@@ -765,10 +770,10 @@ def _dict_completer(_dict, c_dimension, ct_dimension, dim):
     new_dict = _symmetry_completer(_dict)
     for a in c_indices:
         for b in ct_indices:
-            if (a,b) in new_dict:
+            if (a, b) in new_dict:
                 pass
-            if (a,b) not in new_dict:
-                new_dict[a,b] = 0
+            if (a, b) not in new_dict:
+                new_dict[a, b] = 0
     return new_dict
 
 def get_chrisoffel_symbols_from_metric(metric):
@@ -777,7 +782,7 @@ def get_chrisoffel_symbols_from_metric(metric):
     of the Levi-Civita connection associated with a given metric.
 
     Its arguments:
-    - metric: a (0,2)-tensor which represents a non-degenerate symmetric 
+    - metric: a (0,2)-tensor which represents a non-degenerate symmetric
       bilinear function.
     - Ric (optionally): a (0,2)-tensor (expected to be the Ricci tensor).
 
@@ -803,7 +808,7 @@ def get_chrisoffel_symbols_from_metric(metric):
                 sumand += inverse_metric_matrix[r, c] * L
             if sumand != 0:
                 values[a, b] = (1/2) * sumand
-    return Tensor(basis, (1,2), values).simplify()
+    return Tensor(basis, (1, 2), values).simplify()
 
 def get_Riemann_tensor(christoffel_symbols):
     '''
@@ -826,9 +831,9 @@ def get_Riemann_tensor(christoffel_symbols):
         for y in covariant_indices:
             d = x[0]
             c, a, b = y
-            sumand = cs[d, (b,c)].diff(basis[a]) - cs[d, (a,c)].diff(basis[b])
+            sumand = cs[d, (b, c)].diff(basis[a]) - cs[d, (a, c)].diff(basis[b])
             for u in range(dim):
-                sumand += cs[d, (a, u)]*cs[u, (c,b)] - cs[d, (b, u)]*cs[u, (c, a)]
+                sumand += cs[d, (a, u)]*cs[u, (c, b)] - cs[d, (b, u)]*cs[u, (c, a)]
             if sumand != 0:
                 values[x, y] = sumand
     return Tensor(cs.basis, (1, 3), values).simplify()
@@ -839,7 +844,7 @@ def get_Ricci_tensor(christoffel_symbols, Riem=None):
 
     Its arguments:
     - christoffel_symbols: a (1,2)-tensor holding what's expected to be the christoffel
-    symbols of a certain metric
+    symbols of a certain metric \\m
     - Riem (optionally): a (1,3)-tensor (expected to be the Riemman tensor).
 
     Returns:
@@ -857,7 +862,7 @@ def get_scalar_curvature(christoffel_symbols, metric, Ric=None):
     Its arguments:
     - christoffel_symbols: a (1,2)-tensor holding what's expected to be the christoffel
     symbols of a certain metric
-    - metric: a (0,2)-tensor which represents a non-degenerate symmetric 
+    - metric: a (0,2)-tensor which represents a non-degenerate symmetric
       bilinear function.
     - Ric (optionally): a (0,2)-tensor (expected to be the Ricci tensor).
 
@@ -917,7 +922,7 @@ def _get_list_of_lines(tensor, symbol):
             line += '}_{'
             for k in range(tensor.c_dim):
                 line += 'b_{' + str(k) + '}'
-            line += '} = 0 \mbox{ in any other case' + '}$$\n'
+            line += '} = 0 \\mbox{ in any other case' + '}$$\n'
             list_of_lines.append(line)
         if list_of_lines == []:
             line = '$$' + symbol + '^{'
@@ -926,7 +931,7 @@ def _get_list_of_lines(tensor, symbol):
             line += '}_{'
             for k in range(tensor.c_dim):
                 line += 'b_{' + str(k) + '}'
-            line += '} = 0 \mbox{ in every case' + '}$$\n'
+            line += '} = 0 \\mbox{ in every case' + '}$$\n'
             list_of_lines.append(line)
     else:
         list_of_lines.append('$$' + symbol + ' = ' + str(tensor) + '$$')
@@ -976,8 +981,12 @@ def print_in_file(file_name, tensor, symbol, append_flag=False, _format='txt'):
         raise ValueError('Expected txt or tex for format, but got {}'.format(_format))
 
 class Spacetime:
+    '''
+    Spacetime takes a metric and computes the usual geometric invariants.
+
+    To create a Spacetime object, one must pass a metric (i.e. a (0,2)-tensor).
+    '''
     def __init__(self, _metric, printing_flag=False):
-        s, t, x, y, z = sympy.symbols('s t x y z')
         self.metric = _metric
         self.basis = _metric.basis
         if printing_flag:
@@ -1022,17 +1031,17 @@ class Spacetime:
 
         #Riemann Tensor
         complete_list_of_lines.append('Riemman tensor:\n')
-        complete_list_of_lines += _get_list_of_lines(self.Riem, '\mbox{' + 'Riem' + '}')
+        complete_list_of_lines += _get_list_of_lines(self.Riem, '\\mbox{' + 'Riem' + '}')
         complete_list_of_lines.append('\n')
 
         #Ricci Tensor
         complete_list_of_lines.append('Ricci tensor:\n')
-        complete_list_of_lines += _get_list_of_lines(self.Ric, '\mbox{' + 'Ric' + '}')
+        complete_list_of_lines += _get_list_of_lines(self.Ric, '\\mbox{' + 'Ric' + '}')
         complete_list_of_lines.append('\n')
 
         #Scalar curvature
         complete_list_of_lines.append('Scalar curvature:\n')
-        complete_list_of_lines += _get_list_of_lines(self.R, '\mbox{' + 'R' + '}')
+        complete_list_of_lines += _get_list_of_lines(self.R, '\\mbox{' + 'R' + '}')
         complete_list_of_lines.append('\n')
 
         if _format == 'txt':
