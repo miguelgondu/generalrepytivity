@@ -1,3 +1,12 @@
+# -*- coding: utf-8 -*-
+
+"""Top-level package for General Repytivity."""
+
+__author__ = """Miguel Gonzalez Duque"""
+__email__ = 'miguelgondu@gmail.com'
+__version__ = '0.1.0'
+
+
 import sympy
 import itertools
 
@@ -35,7 +44,7 @@ def is_multiindex(multiindex, n, c_dimension):
 def _get_matrix_of_basis_change(basis1, basis2, _dict, jacobian=True):
     '''
     This is an internal function. It is used in the change_basis method
-    for tensor objects. It computes the matrix that represents the 
+    for tensor objects. It computes the matrix that represents the
     identity function from (V, basis1) to (V, basis2). It does so
     using derivatives.
 
@@ -94,7 +103,7 @@ def _dict_completer_for_tensor(_dict, _type, dim):
     Those cases are:
         - If one of the dimensions is 0, it is allowed to put only one multiindex instead
           of a pair.
-        - if one of the dimensions is 1, it is allowd to put an integer instead of a 
+        - if one of the dimensions is 1, it is allowd to put an integer instead of a
           1-multiindex.
     '''
     ct_dim = _type[0]
@@ -219,14 +228,14 @@ class Tensor:
                     return sympy.simplify(self.values[((), pair)])
                 else:
                     return sympy.simplify(0)
-        
+
         if self.c_dim == 0 and self.ct_dim > 0:
             if is_multiindex(pair, self.dim, self.ct_dim):
                 if (pair, ()) in self.values:
                     return sympy.simplify(self.values[(pair, ())])
                 else:
                     return sympy.simplify(0)
-        
+
         if self.c_dim == 1 and self.ct_dim == 1:
             if len(pair) == 2:
                 i, j = pair
@@ -320,7 +329,7 @@ class Tensor:
             return Tensor(self.basis, self.type, self.values)
         if not isinstance(other, Tensor):
             raise ValueError('Cannot add a tensor with a {}'.format(type(other)))
-        
+
         if other.basis != self.basis or other.type != self.type:
             raise ValueError('Tensors should be of the same type and have the same basis.')
 
@@ -330,11 +339,11 @@ class Tensor:
                 result_dict[key] = result_dict[key] + other.values[key]
             if key not in result_dict:
                 result_dict[key] = other.values[key]
-        
+
         for key in result_dict.copy():
             if result_dict[key] == 0:
                 empty = result_dict.pop(key)
-        
+
         result_basis = self.basis
         result_type = self.type
         return Tensor(result_basis, result_type, result_dict).simplify()
@@ -353,7 +362,7 @@ class Tensor:
             for key in self.values:
                 new_dict[key] = self.values[key] * other
             return Tensor(self.basis, self.type, new_dict).simplify()
-        
+
         if isinstance(other, Tensor):
             if other.type != (0,0):
                 raise ValueError('Can\'t multiply a tensor with a tensor that isn\'t (0,0)')
@@ -384,7 +393,7 @@ class Tensor:
 
     def simplify(self):
         '''
-        This function simplifies (using sympy.simplify) every value in 
+        This function simplifies (using sympy.simplify) every value in
         the tensors dict.
 
         For example:
@@ -475,7 +484,7 @@ class Tensor:
     @classmethod
     def from_function(cls, basis, _type, func):
         '''
-        This method allows you to create a tensor from a function. The function func must 
+        This method allows you to create a tensor from a function. The function func must
         take 2 multiindices and turn them into a value.
 
         For example:
@@ -516,7 +525,7 @@ def get_matrix_from_tensor(tensor):
 
 def contract_indices(tensor, i, j):
     '''
-    Returns the resulting tensor of formally contracting the indices i and j 
+    Returns the resulting tensor of formally contracting the indices i and j
     of the given tensor.
     '''
     dim = len(tensor.basis)
@@ -560,7 +569,7 @@ def lower_index(tensor, metric, i):
             raise ValueError('metric should be a (0,2)-tensor')
     else:
         raise ValueError('metric should be a (0,2)-tensor')
-    
+
     if tensor.ct_dim == 0:
         raise ValueError('There\'s no index to be lowered.')
 
@@ -594,7 +603,7 @@ def lower_index(tensor, metric, i):
 
 def raise_index(tensor, metric, j):
     '''
-    
+
     '''
     if isinstance(metric, Tensor):
         if metric.basis != tensor.basis:
@@ -745,7 +754,7 @@ def _get_list_of_lines(tensor, symbol):
                 line += sympy.latex(value)
                 line += '$$\n'
                 list_of_lines.append(line)
-        
+
         # Last line, the one about the zeros
         if list_of_lines != []:
             line = '$$' + symbol + '^{'
@@ -822,7 +831,7 @@ class Spacetime:
         if printing_flag:
             print('Computing Einstein\'s tensor')
         self.G = get_Einstein_tensor(self.christoffel_symbols, self.metric, self.Ric, self.R)
-    
+
     def print_summary(self, file_name='Spacetime.txt', _format='txt'):
         try:
             _file = open(file_name, 'x')
