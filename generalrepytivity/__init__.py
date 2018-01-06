@@ -183,16 +183,30 @@ def _dict_completer_for_tensor(_dict, _type, dim):
 
 class Tensor:
     '''
-    This class represents a tensor object in a given basis.
+    This class represents a tensor object in some given coordinates.
 
     To construct a (p,q)-Tensor, one must pass three arguments:
     1. basis: a list of sympy symbols which represent the coordinates (or
        basis of tangent space).
-    1. _type: a pair of values p (the contravariant dimension) and q (the
+    2. _type: a pair of values p (the contravariant dimension) and q (the
       covariant dimension).
-    2. the non-zero values, which is a dict whose keys are pairs of the
+    3. the non-zero values, which is a dict whose keys are pairs of the
     form (a, b) where a and b are multi-indices such that $\Gamma^a_b = value$,
     the values that don't appear in this dict are assumed to be 0.
+
+    For example:
+    import generalrepytivity as gr
+    import sympy
+
+    t, x, y, z = sympy.symbols('t x y z')
+    basis = [t, x, y, z]
+    _type = (2, 1)
+    values = {
+        ((1,1), (0, )): 5,
+        ((0,1), (0, )): -3,
+        ((1,0), (2, )): t**2,
+    }
+    tensor = gr.Tensor(basis, _type, dict_of_values)
     '''
     def __init__(self, basis, _type, values):
         self.basis = basis
@@ -385,18 +399,20 @@ class Tensor:
 
     __rmul__ = __mul__
 
-    def subs(self, list_of_substitutions):
+    def subs(self, substitutions):
+        '''
+        This function substitutes (using sympy.subs) every value in
+        the tensors dict with the list substitutions.
+        '''
         new_dict = {}
         for key, value in self.values.items():
-            new_dict[key] = sympy.simplify(value).subs(list_of_substitutions)
+            new_dict[key] = sympy.simplify(value).subs(substitutions)
         return Tensor(self.basis, self.type, new_dict).simplify()
 
     def simplify(self):
         '''
         This function simplifies (using sympy.simplify) every value in
         the tensors dict.
-
-        For example:
         '''
         new_dict = {}
         for key, value in self.values.items():
@@ -407,7 +423,8 @@ class Tensor:
 
     def evalf(self):
         '''
-        This function evaluates to floats every value in the tensors dict.
+        This function evaluates to floats (using sympy\'s evalf) every
+        value in the tensors dict.
         '''
         new_dict = {}
         for key, value in self.values.items():
@@ -434,7 +451,8 @@ class Tensor:
     def change_basis(self, new_basis, basis_change):
         '''
         This function returns a new tensor object in the new basis according
-        to the transormations stored in the dict basis_change.
+        to the transormations stored in the dict basis_change. Note that this
+        doens\'t happen inplace.
         '''
         L = _get_matrix_of_basis_change(self.basis, new_basis, basis_change, False)
         contravariant_indices = get_all_multiindices(self.ct_dim, self.dim)
@@ -458,8 +476,36 @@ class Tensor:
 
     def change_coordinates(self, new_coordinates, coord_change):
         '''
-        This function returns a new tensor object in the new basis according
-        to the transormations stored in the dict coord_change.
+        change_coordinates returns a tensor with new coordinates
+        with respect to the dict coord_change.
+
+        Its arguments:
+        - new_coordinates: a list of sympy symbols that represent
+          the new coordinates
+        - coord_change: a python dict whose keys are the former coordinates
+          and whose values are their relationship with the new coordinates.
+
+        Returns:
+        - a new tensor in the new coordinates.
+
+        For example:
+        import generalrepytivity as gr
+        import sympy
+
+        x, y = sympy.symbols('x y')
+        coordinates_1 = [x, y]
+        r, theta = sympy.symbols('r \\theta')
+        coordinates_2 = [r, theta]
+        values = {
+            ((), (0, 0)): 1,
+            ((), (1, 1)): 1
+        }
+        g = gr.Tensor(coordinates_1, (0, 2), values)
+        coord_change = {
+            x: r*sympy.cos(theta),
+            y: r*sympy.sin(theta)
+        }
+        new_g = g.change_coordinates(coordinates_2, coord_change)
         '''
         L = _get_matrix_of_basis_change(self.basis, new_coordinates, coord_change, True)
         contravariant_indices = get_all_multiindices(self.ct_dim, self.dim)
@@ -484,13 +530,16 @@ class Tensor:
     @classmethod
     def from_function(cls, basis, _type, func):
         '''
-        This method allows you to create a tensor from a function. The function func must
-        take 2 multiindices and turn them into a value.
+        This method allows you to create a tensor from a function. 
+        The function func must take 2 multiindices and turn them
+        into a value.
 
         For example:
+
         def func(a, b):
             return 2**a[0] * 3**b[0] * 5**b[1]
-        is a valid function for a (1,2)-Tensor.
+
+        func is a valid function for the creation of a (1,2)-Tensor.
         '''
         ct_dim, c_dim = _type
         dim = len(basis)
@@ -503,7 +552,16 @@ class Tensor:
 
 def get_tensor_from_matrix(matrix, basis):
     '''
-    This function takes a square matrix and a basis and retruns a (0,2)-tensor in that basis.
+    get_tensor_from_matrix returns a (0,2)-tensor whose values come
+    from the given matrix
+
+    Its arguments:
+    - matrix: a square sympy matrix.
+    - basis: a list of sympy symbols that represent the coordinates of
+      the tensor.
+
+    Returns:
+    - a (0,2)-tensor T where T[(), (i, j)] == matrix[i,j].
     '''
     values = {}
     for i in range(len(matrix.tolist())):
@@ -514,7 +572,14 @@ def get_tensor_from_matrix(matrix, basis):
 
 def get_matrix_from_tensor(tensor):
     '''
-    This function takes an (0,2)-tensor and returns it matrix representation.
+    get_matrix_from_tensor returns the matrix representation of a (0,2)
+    tensor.
+
+    Its arguments:
+    - tensor: a (0,2)-tensor.
+
+    Returns:
+    - a sympy matrix A where A[i, j] == tensor[(), (i,j)].
     '''
     matrix = sympy.zeros(len(tensor.basis))
     for i in range(len(tensor.basis)):
@@ -525,8 +590,19 @@ def get_matrix_from_tensor(tensor):
 
 def contract_indices(tensor, i, j):
     '''
-    Returns the resulting tensor of formally contracting the indices i and j
-    of the given tensor.
+    contract_indices formally contracts the i-th superindex and the jth-subindex
+    of a tensor.
+
+    Its arguments:
+    - tensor: any (p,q)-tensor, with p >= 1 and q >= 1.
+    - i: an integer which represents the position of the superindex to
+      be contracted (indexing in 0).
+    - j: an integer which represents the position of the subindex to
+      be raised (indexing in 0).
+
+    Returns:
+    - a (p-1,q-1)-tensor, the result of contracting the original tensors i-th
+    superindex and j-th subindex.
     '''
     dim = len(tensor.basis)
     c_dim = tensor.c_dim
@@ -562,6 +638,19 @@ def contract_indices(tensor, i, j):
     return Tensor(tensor.basis, (ct_dim - 1, c_dim - 1), new_tensor_dict).simplify()
 
 def lower_index(tensor, metric, i):
+    '''
+    lower_index lowers the i-th index of a tensor with respect to some metric.
+
+    Its arguments:
+    - tensor: any (p,q)-tensor, with p >= 1.
+    - metric: a (0,2)-tensor which represents a non-degenerate symmetric 
+      bilinear function.
+    - i: an integer which represents the position of the superindex to
+      be lowered (indexing in 0).
+
+    Returns:
+    - a (p-1,q+1)-tensor, the result of lowering the original tensors i-th superindex.
+    '''
     if isinstance(metric, Tensor):
         if metric.basis != tensor.basis:
             raise ValueError('Tensor and Metric should be on the same basis.')
@@ -603,7 +692,17 @@ def lower_index(tensor, metric, i):
 
 def raise_index(tensor, metric, j):
     '''
+    raise_index raises the j-th index of a tensor with respect to some metric.
 
+    Its arguments:
+    - tensor: any (p,q)-tensor, with q >= 1.
+    - metric: a (0,2)-tensor which represents a non-degenerate symmetric 
+      bilinear function.
+    - j: an integer which represents the position of the subindex to
+      be raised (indexing in 0).
+
+    Returns:
+    - a (p+1,q-1)-tensor, the result of raising the original tensors j-th subindex.
     '''
     if isinstance(metric, Tensor):
         if metric.basis != tensor.basis:
@@ -673,6 +772,18 @@ def _dict_completer(_dict, c_dimension, ct_dimension, dim):
     return new_dict
 
 def get_chrisoffel_symbols_from_metric(metric):
+    '''
+    get_christoffel_symbols_from_metric computes the christoffel symbols
+    of the Levi-Civita connection associated with a given metric.
+
+    Its arguments:
+    - metric: a (0,2)-tensor which represents a non-degenerate symmetric 
+      bilinear function.
+    - Ric (optionally): a (0,2)-tensor (expected to be the Ricci tensor).
+
+    Returns:
+    - a (0,0)-tensor, holding the scalar curvature.
+    '''
     basis = metric.basis
     dim = len(basis)
     metric_matrix = get_matrix_from_tensor(metric)
@@ -695,6 +806,16 @@ def get_chrisoffel_symbols_from_metric(metric):
     return Tensor(basis, (1,2), values).simplify()
 
 def get_Riemann_tensor(christoffel_symbols):
+    '''
+    get_Riemann_tensor computes the Riemann tensor from some christoffel symbols.
+
+    Its arguments:
+    - christoffel_symbols: a (1,2)-tensor holding what's expected to be the
+      christoffel symbols of a certain metric.
+
+    Returns:
+    - a (1,3)-tensor, holding the Riemann tensor.
+    '''
     cs = christoffel_symbols
     basis = christoffel_symbols.basis
     dim = len(christoffel_symbols.basis)
@@ -713,17 +834,50 @@ def get_Riemann_tensor(christoffel_symbols):
     return Tensor(cs.basis, (1, 3), values).simplify()
 
 def get_Ricci_tensor(christoffel_symbols, Riem=None):
+    '''
+    get_Ricci_tensor computes the Ricci tensor from some christoffel symbols.
+
+    Its arguments:
+    - christoffel_symbols: a (1,2)-tensor holding what's expected to be the christoffel
+    symbols of a certain metric
+    - Riem (optionally): a (1,3)-tensor (expected to be the Riemman tensor).
+
+    Returns:
+    - a (0,2)-tensor, holding the Ricci tensor.
+    '''
     if Riem == None:
         Riem = get_Riemann_tensor(christoffel_symbols)
     return contract_indices(Riem, 0, 1)
 
 def get_scalar_curvature(christoffel_symbols, metric, Ric=None):
+    '''
+    get_scalar_curvature computes the scalar curvature from some christoffel symbols
+    and some metric.
+
+    Its arguments:
+    - christoffel_symbols: a (1,2)-tensor holding what's expected to be the christoffel
+    symbols of a certain metric
+    - metric: a (0,2)-tensor which represents a non-degenerate symmetric 
+      bilinear function.
+    - Ric (optionally): a (0,2)-tensor (expected to be the Ricci tensor).
+
+    Returns:
+    - a (0,0)-tensor, holding the scalar curvature.
+    '''
     if Ric == None:
         Ric = get_Ricci_tensor(christoffel_symbols)
     Temp = raise_index(Ric, metric, 0)
     return contract_indices(Temp, 0, 0)
 
 def get_Einstein_tensor(christoffel_symbols, metric, Ric=None, R=None):
+    '''
+    This function takes a (1,2)-tensor holding what's expected to be the christoffel
+    symbols of a certain metric and the metric itself, and computes the Einstein tensor.
+
+
+    One can also pass the Ricci tensor as a third argument and the scalar curvature
+    as a forth in order to save some computational time.
+    '''
     if Ric == None:
         Ric = get_Ricci_tensor(christoffel_symbols)
     if R == None:
@@ -779,6 +933,16 @@ def _get_list_of_lines(tensor, symbol):
     return list_of_lines
 
 def print_in_file(file_name, tensor, symbol, append_flag=False, _format='txt'):
+    '''
+    print_in_file pretty prints a tensor in a file.
+
+    print_in_file takes the following arguments:
+    - file_name: a string with the name of the file to be created
+    - tensor: the tensor object to be printed
+    - symbol: a string, which is to represent the symbol (for example \\Gamma)
+    - append_flag: a boolean which states whether to append or overwrite the file.
+    - _format: either \'txt\' or \'tex\'.
+    '''
     if not append_flag:
         try:
             _file = open(file_name, 'x')
@@ -833,6 +997,13 @@ class Spacetime:
         self.G = get_Einstein_tensor(self.christoffel_symbols, self.metric, self.Ric, self.R)
 
     def print_summary(self, file_name='Spacetime.txt', _format='txt'):
+        '''
+        print_summary pretty prints a summary of the Spacetime object in a file.
+
+        print_in_file takes the following arguments:
+        - file_name: a string with the name of the file to be created
+        - _format: either \'txt\' or \'tex\'.
+        '''
         try:
             _file = open(file_name, 'x')
         except:
