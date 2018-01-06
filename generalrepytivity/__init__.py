@@ -410,16 +410,6 @@ class Tensor:
 
     __rmul__ = __mul__
 
-    def subs(self, substitutions):
-        '''
-        This function substitutes (using sympy.subs) every value in
-        the tensors dict with the list substitutions.
-        '''
-        new_dict = {}
-        for key, value in self.values.items():
-            new_dict[key] = sympy.simplify(value).subs(substitutions)
-        return Tensor(self.basis, self.type, new_dict).simplify()
-
     def simplify(self):
         '''
         This function simplifies (using sympy.simplify) every value in
@@ -431,6 +421,17 @@ class Tensor:
         if Tensor == 0:
             return Tensor(self.basis, self.type, 'zero')
         return Tensor(self.basis, self.type, new_dict)
+
+    def subs(self, substitutions):
+        '''
+        This function substitutes (using sympy.subs) every value in
+        the tensors dict with the list substitutions.
+        '''
+        new_dict = {}
+        for key, value in self.values.items():
+            new_dict[key] = sympy.simplify(value).subs(substitutions)
+        return Tensor(self.basis, self.type, new_dict).simplify()
+
 
     def evalf(self):
         '''
@@ -536,7 +537,7 @@ class Tensor:
                     }
                     temp_tensor = Tensor(new_coordinates, self.type, temp_tensor_values)
                     new_tensor += temp_tensor
-        return new_tensor
+        return new_tensor.simplify()
 
     @classmethod
     def from_function(cls, basis, _type, func):
