@@ -1,8 +1,4 @@
-#!/usr/bin/env python
-
-"""Tests for `generalrepytivity` package."""
-
-import generalrepytivity as gr
+import generalrelativity as gr
 import sympy
 
 t, x, y, z = sympy.symbols('t x y z')
@@ -102,19 +98,19 @@ def test_different_tensors():
         ((0,1), (0, )): -3,
         ((1,0), (2, )): 8,
     }
-
+    
     dict_of_values_2 = {
         ((1,1), (0, )): -5,
         ((0,1), (0, )): -3,
         ((1,0), (2, )): 8,
     }
-
+    
     basis = [t, x, y, z]
     _type = (2, 1)
     tensor_1 = gr.Tensor(basis, _type, dict_of_values_1)
     tensor_2 = gr.Tensor(basis, _type, dict_of_values_2)
 
-    assert tensor_1 != tensor_2
+    assert tensor_1 != tensor_2 
 
 def test_wrong_dict_in_creation():
     _type = (2, 2)
