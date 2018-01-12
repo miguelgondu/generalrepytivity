@@ -2,6 +2,7 @@
 .ipynb_checkpoints/
 notebooks/
 tex_documents/
+venv/
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
