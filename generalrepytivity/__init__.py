@@ -4,7 +4,7 @@
 
 __author__ = """Miguel Gonzalez Duque"""
 __email__ = 'miguelgondu@gmail.com'
-__version__ = '__version__ = '0.1.0''
+__version__ = '__version__ = '__version__ = '0.1.0'''
 
 
 import itertools
