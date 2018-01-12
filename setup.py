@@ -28,7 +28,7 @@ test_requirements = [
 
 setup(
     name='generalrepytivity',
-    version='0.1.0',
+    version='version='0.1.0'',
     description="generalrelativity holds some algorithms that render useful when doing computations related to general relativity.",
     long_description=readme + '\n\n' + history,
     author="Miguel Gonzalez Duque",
