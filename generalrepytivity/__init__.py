@@ -14,8 +14,6 @@ def get_all_multiindices(p, n):
     '''
     This function returns a list of all the tuples of the form (a_1, ..., a_p)
     with a_i between 1 and n-1. These tuples serve as multiindices for tensors.
-
-    To-Do: I could just return the itertools.product iterable object, no?
     '''
     return list(itertools.product(range(n), repeat=p))
 
@@ -66,7 +64,8 @@ def _get_matrix_of_basis_change(basis1, basis2, _dict, jacobian=True):
      [0, 0, 1, 0]]
 
     if the jacobian keyword is set to True, and its transpose if
-    it is false.
+    it is false. The transpose works when you're trying to change
+    basis in the algebraic sense (instead of the geometrical sense).
     '''
 
     dim = len(basis1)
@@ -154,7 +153,7 @@ def _dict_completer_for_tensor(_dict, _type, dim):
                 elif isinstance(i, int) and is_multiindex(b, dim, c_dim):
                     new_dict[(i, ), b] = _dict[key]
                 else:
-                    raise ValueError('{} should be an integer and {} should be a {}-multiindex (or int in case 1).'.format(
+                    raise ValueError('{} isn\'t an integer or {} isn\'t a {}-multiindex (or int).'.format(
                         i, b, c_dim))
             else:
                 raise ValueError('There should only be two things in {}'.format(key))
@@ -186,7 +185,7 @@ class Tensor:
     This class represents a tensor object in some given coordinates.
 
     To construct a (p,q)-Tensor, one must pass three arguments:
-    1. coordinates (a.k.a. basis): a list of sympy symbols which represent the coordinates (or
+    1. coordinates (or basis): a list of sympy symbols which represent the coordinates (or
        basis of tangent space).
     2. _type: a pair of values p (the contravariant dimension) and q (the
       covariant dimension).
@@ -867,7 +866,7 @@ def get_scalar_curvature(christoffel_symbols, metric, Ric=None):
 
     Its arguments:
     - christoffel_symbols: a (1,2)-tensor holding what's expected to be the christoffel
-    symbols of a certain metric
+    symbols of a certain metric.
     - metric: a (0,2)-tensor which represents a non-degenerate symmetric
       bilinear function.
     - Ric (optionally): a (0,2)-tensor (expected to be the Ricci tensor).
@@ -882,12 +881,20 @@ def get_scalar_curvature(christoffel_symbols, metric, Ric=None):
 
 def get_Einstein_tensor(christoffel_symbols, metric, Ric=None, R=None):
     '''
-    This function takes a (1,2)-tensor holding what's expected to be the christoffel
-    symbols of a certain metric and the metric itself, and computes the Einstein tensor.
+    get_Einstein_tensor computes the Einstein tensor from some christoffel symbols
+    and some metric.
 
+    Its arguments:
+    - christoffel_symbols: a (1,2)-tensor holding what's expected to be the christoffel
+    symbols of a certain metric.
+    - metric: a (0,2)-tensor which represents a non-degenerate symmetric
+      bilinear function.
+    - Ric (optionally): a (0,2)-tensor (expected to be the Ricci tensor).
+    - R (optionally): an (0,0)-tensor (or just a sympy expr), which is the 
+      scalar curvature.
 
-    One can also pass the Ricci tensor as a third argument and the scalar curvature
-    as a forth in order to save some computational time.
+    Returns:
+    - a (0,2)-tensor, holding the Einstein tensor.
     '''
     if Ric == None:
         Ric = get_Ricci_tensor(christoffel_symbols)

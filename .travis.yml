@@ -19,7 +19,7 @@ deploy:
   distributions: sdist bdist_wheel
   user: miguelgondu
   password:
-    secure: PLEASE_REPLACE_ME
+    secure: is_this_secure_enough
   on:
     tags: true
     repo: miguelgondu/generalrepytivity
