@@ -33,10 +33,7 @@ Installation
 --------
 
 Because this project is now on `pypi <https://pypi.python.org/pypi?name=generalrepytivity&version=0.1.0&:action=display>`_,
-installing it is easy using python package manager pip
-
-.. highligh::bash
-        pip install generalrepytivity
+installing it is easy using python package manager pip: in your terminal write ``pip install generalrepytivity``
 
 
 Credits
